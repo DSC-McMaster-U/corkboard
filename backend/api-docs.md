@@ -6,6 +6,37 @@ This document provides the input and output specification for all of Corkboard's
 
 - All dates should be passed as a string, convereted using the method .toISOString()
 
+## Auth
+
+`POST /api/auth/login/`
+
+- Returns a new JWT token for the users session based on the provided login information.
+- Errors if the login information is invalid.
+
+- ##### Request Headers
+    - `Content-Type: "application/json"`
+    - `Accept: "application/json"`
+- ##### Request Body
+
+```
+{
+    email: string,
+    password: string,
+}
+```
+
+- ##### Response Headers
+    - `Content-Type: "application/json"`
+- ##### Response Body
+
+```
+{
+    jwt: string | undefined,
+    error: string | undefined,
+    success: boolean | undefined,
+}
+```
+
 ## Bookmarks
 
 `GET /api/bookmarks/`
@@ -175,28 +206,30 @@ This document provides the input and output specification for all of Corkboard's
     - `Content-Type: "application/json"`
     - `Accept: "application/json"`
 - ##### Request Body [All fields optional]
+
 ```
-{ 
-    name: string | undefined, 
-    username: string | undefined, 
-    profile_picture: string | undefined, 
-    bio: string | undefined 
+{
+    name: string | undefined,
+    username: string | undefined,
+    profile_picture: string | undefined,
+    bio: string | undefined
 }
 ```
 
 - ##### Response Headers
     - `Content-Type: "application/json"`
 - ##### Response Body
+
 ```
-{ 
-    success: boolean | undefined, 
+{
+    success: boolean | undefined,
     user: {
-            id: string, name: string | undefined, 
-            username: string | undefined, 
-            profile_picture: string | undefined, 
-            bio: string | undefined 
-          } | undefined, 
-    error: string | undefined 
+            id: string, name: string | undefined,
+            username: string | undefined,
+            profile_picture: string | undefined,
+            bio: string | undefined
+          } | undefined,
+    error: string | undefined
 }
 ```
 

@@ -35,7 +35,7 @@ describe.skip("JWT Authentication", () => {
 
         if (error || !data?.session) {
             throw new Error(
-                `Failed to get JWT token: ${error?.message || "No session"}`
+                `Failed to get JWT token: ${error?.message || "No session"}`,
             );
         }
 
@@ -115,7 +115,6 @@ describe.skip("JWT Authentication", () => {
 
     // 8. test POST & DELETE bookmarks endpoint using JWT
     it("should work with POST bookmarks using JWT", async () => {
-
         const response = await request(app)
             .post("/api/bookmarks")
             .set("Authorization", `Bearer ${jwtToken}`)
@@ -159,7 +158,7 @@ describe.skip("JWT Authentication", () => {
     it("should return 401 with expired/invalid token format", async () => {
         // test with a token that looks like JWT but is invalid
         const invalidJWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.lol";
-        
+
         const response = await request(app)
             .get("/api/users/")
             .set("Authorization", `Bearer ${invalidJWT}`);
@@ -173,11 +172,14 @@ describe.skip("JWT Authentication", () => {
 // TODO: re-enable after email validation is implemented
 describe.skip("Sign-In Business Logic", () => {
     // test sign-in using db layer methods
-    
+
     // 1. test sign-in with valid credentials
     it("should successfully sign in with valid credentials using db.auth.signIn", async () => {
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, TEST_USER_PASSWORD);
-        
+        const { data, error } = await db.auth.signIn(
+            TEST_USER_EMAIL,
+            TEST_USER_PASSWORD,
+        );
+
         expect(error).toBeNull();
         expect(data).toBeDefined();
         expect(data?.user).toBeDefined();
@@ -185,59 +187,63 @@ describe.skip("Sign-In Business Logic", () => {
         expect(data?.session?.access_token).toBeDefined();
         expect(data?.user?.email).toBe(TEST_USER_EMAIL);
     });
-    
+
     // 2. test sign-in with invalid email
     it("should return error with invalid email", async () => {
-        const { data, error } = await db.auth.signIn("hello@example.com", TEST_USER_PASSWORD);
-        
+        const { data, error } = await db.auth.signIn(
+            "hello@example.com",
+            TEST_USER_PASSWORD,
+        );
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
         expect(error?.message).toBeDefined();
     });
-    
+
     // 3. test sign-in with wrong password
     it("should return error with wrong password", async () => {
         const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "this");
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
         expect(error?.message).toBeDefined();
     });
-    
+
     // 4. test sign-in with empty email
     it("should return error with empty email", async () => {
         const { data, error } = await db.auth.signIn("", TEST_USER_PASSWORD);
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
     });
-    
+
     // 5. test sign-in with empty password
     it("should return error with empty password", async () => {
         const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "");
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
     });
-    
+
     // 6. test sign-in with valid credentials and works with API
     it("should return valid token that works with API after sign-in", async () => {
+        const { data, error } = await db.auth.signIn(
+            TEST_USER_EMAIL,
+            TEST_USER_PASSWORD,
+        );
 
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, TEST_USER_PASSWORD);
-        
         expect(error).toBeNull();
         expect(data.session).toBeDefined();
-        
+
         const token = data.session!.access_token;
-        
+
         // GET /api/users/ should return 200 with valid token
         const response = await request(app)
             .get("/api/users/")
             .set("Authorization", `Bearer ${token}`);
-        
+
         expect(response.statusCode).toBe(200);
         expect(response.body.user).toBeDefined();
         expect(response.body.user.id).toBeDefined();
     });
 });
-
