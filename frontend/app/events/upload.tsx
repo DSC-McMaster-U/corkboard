@@ -87,6 +87,7 @@ export default function UploadScreen() {
     if (!startDate) next.startDate = "Start date & time is required";
     if (!venueName.trim()) next.venueName = "Venue name is required";
     if (!venueAddress.trim()) next.venueAddress = "Venue address is required";
+    if (!photoUri) next.photo = "Photo is required";
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -197,7 +198,7 @@ export default function UploadScreen() {
           autoCapitalize="none"
         />
 
-        <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Photo</Text>
+        <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Photo *</Text>
         <Pressable style={[styles.photoBox, errors.photo && styles.inputError]} onPress={pickPhoto}>
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.photoPreview} />
