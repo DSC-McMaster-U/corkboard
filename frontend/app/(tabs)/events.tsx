@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, ActivityIndicator } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
@@ -230,6 +231,19 @@ export default function EventsScreen() {
               <Text className="text-[#6a3f1d]">{`· $${costRange[0]}–$${costRange[1]}`}</Text>
             </Text>
           </View>
+        </View>
+
+        {/* Upload an event (hardcoded - fix later)*/}
+        <View className="px-4 mt-2 mb-4">
+          <TouchableOpacity
+            onPress={() => router.push("/events/upload")}
+            className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-3"
+          >
+            <FontAwesome name="plus" size={16} color="white" />
+            <Text className="text-white font-bold ml-2 text-base">
+              Submit an event
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{paddingTop: 4, paddingBottom: 120 }}>
