@@ -14,7 +14,7 @@ export default function ExploreScreen() {
   // fetching trending songs
 
   return (
-    <SafeAreaView className='bg-background flex-1' edges={['top', 'left', 'right']}>
+    <SafeAreaView className='bg-background flex-1' edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#000000" />
       <View className='flex-1 flex-col px-4 py-4'>
 
