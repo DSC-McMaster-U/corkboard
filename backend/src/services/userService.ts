@@ -45,4 +45,46 @@ export const userService = {
         if (error) throw error;
         return data;
     },
+    // Get all favourites (genres, venues, artists) for a user
+    getUserFavourites: async (userId: string) => {
+        const { data, error } = await db.users.getByIdWithFavorites(userId);
+        if (error) throw error;
+        return data;
+    },
+    // Add favourite genre
+    addFavouriteGenre: async (userId: string, genreId: string) => {
+        const { data, error } = await db.users.addFavoriteGenre(userId, genreId);
+        if (error) throw error;
+        return data;
+    },
+    // Remove favourite genre
+    removeFavouriteGenre: async (userId: string, genreId: string) => {
+        const { error } = await db.users.removeFavoriteGenre(userId, genreId);
+        if (error) throw error;
+        return true;
+    },
+    // Add favourite venue
+    addFavouriteVenue: async (userId: string, venueId: string) => {
+        const { data, error } = await db.users.addFavoriteVenue(userId, venueId);
+        if (error) throw error;
+        return data;
+    },
+    // Remove favourite venue
+    removeFavouriteVenue: async (userId: string, venueId: string) => {
+        const { error } = await db.users.removeFavoriteVenue(userId, venueId);
+        if (error) throw error;
+        return true;
+    },
+    // Add favourite artist
+    addFavouriteArtist: async (userId: string, artistId: string) => {
+        const { data, error } = await db.users.addFavoriteArtist(userId, artistId);
+        if (error) throw error;
+        return data;
+    },
+    // Remove favourite artist
+    removeFavouriteArtist: async (userId: string, artistId: string) => {
+        const { error } = await db.users.removeFavoriteArtist(userId, artistId);
+        if (error) throw error;
+        return true;
+    },
 };

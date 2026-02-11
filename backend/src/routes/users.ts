@@ -69,6 +69,202 @@ router.put( "/:userId", authService.validateToken, async (req: Request, res: Res
 );
 
 
+// GET /api/users/favourites - Get all favourites for authenticated user
+router.get(
+    "/favourites/all",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        try {
+            const favourites = await userService.getUserFavourites(String(user.id));
+            res.status(200).json({ favourites });
+        } catch (err: any) {
+            console.error("Failed to get favourites:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// POST /api/users/favourites/genres - Add favourite genre
+router.post(
+    "/favourites/genres",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { genreId = undefined } = req.body;
+
+        if (genreId == undefined || genreId === "") {
+            res.status(400).json({ error: "Missing genre ID" });
+            return;
+        }
+
+        try {
+            await userService.addFavouriteGenre(String(user.id), genreId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to add favourite genre:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// DELETE /api/users/favourites/genres - Remove favourite genre
+router.delete(
+    "/favourites/genres",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { genreId = undefined } = req.body;
+
+        if (genreId == undefined || genreId === "") {
+            res.status(400).json({ error: "Missing genre ID" });
+            return;
+        }
+
+        try {
+            await userService.removeFavouriteGenre(String(user.id), genreId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to remove favourite genre:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// POST /api/users/favourites/venues - Add favourite venue
+router.post(
+    "/favourites/venues",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { venueId = undefined } = req.body;
+
+        if (venueId == undefined || venueId === "") {
+            res.status(400).json({ error: "Missing venue ID" });
+            return;
+        }
+
+        try {
+            await userService.addFavouriteVenue(String(user.id), venueId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to add favourite venue:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// DELETE /api/users/favourites/venues - Remove favourite venue
+router.delete(
+    "/favourites/venues",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { venueId = undefined } = req.body;
+
+        if (venueId == undefined || venueId === "") {
+            res.status(400).json({ error: "Missing venue ID" });
+            return;
+        }
+
+        try {
+            await userService.removeFavouriteVenue(String(user.id), venueId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to remove favourite venue:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// POST /api/users/favourites/artists - Add favourite artist
+router.post(
+    "/favourites/artists",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { artistId = undefined } = req.body;
+
+        if (artistId == undefined || artistId === "") {
+            res.status(400).json({ error: "Missing artist ID" });
+            return;
+        }
+
+        try {
+            await userService.addFavouriteArtist(String(user.id), artistId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to add favourite artist:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
+// DELETE /api/users/favourites/artists - Remove favourite artist
+router.delete(
+    "/favourites/artists",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { artistId = undefined } = req.body;
+
+        if (artistId == undefined || artistId === "") {
+            res.status(400).json({ error: "Missing artist ID" });
+            return;
+        }
+
+        try {
+            await userService.removeFavouriteArtist(String(user.id), artistId);
+            res.status(200).json({ success: true });
+        } catch (err: any) {
+            console.error("Failed to remove favourite artist:", err);
+            res.status(500).json({ error: err.message || "Internal Server Error" });
+        }
+    }
+);
+
 // POST /api/users/
 router.post("/", async (req: Request, res: Response) => {
     let {

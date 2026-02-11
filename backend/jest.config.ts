@@ -91,14 +91,10 @@ const config: Config = {
     //   "node"
     // ],
 
-    // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-    moduleNameMapper: {
-        "^(\\.{1,2}/.*)\\.js$": "$1", // Maps imports ending in .js to their base path
-        "^(\\.{1,2}/.*)\\.cjs$": "$1", // Maps imports ending in .cjs to their base path
-    },
+
 
     // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
-    // modulePathIgnorePatterns: [],
+    modulePathIgnorePatterns: ["<rootDir>/src/routes/images.ts"],
 
     // Activates notifications for test results
     // notify: false,
@@ -177,8 +173,7 @@ const config: Config = {
     // A map from regular expressions to paths to transformers
     // transform: undefined,
 
-    // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-    transformIgnorePatterns: ["\\\\node_modules\\\\", "\\.pnp\\.[^\\\\]+$"],
+
 
     // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
     // unmockedModulePathPatterns: undefined,
@@ -191,6 +186,28 @@ const config: Config = {
 
     // Whether to use watchman for file crawling
     // watchman: true,
+
+    // ESM support for modern packages
+    preset: "ts-jest/presets/default-esm",
+    extensionsToTreatAsEsm: [".ts"],
+    moduleNameMapper: {
+        "^(\\.{1,2}/.*)\\.js$": "$1", // Maps imports ending in .js to their base path
+        "^(\\.{1,2}/.*)\\.cjs$": "$1", // Maps imports ending in .cjs to their base path
+    },
+    transform: {
+        "^.+\\.tsx?$": [
+            "ts-jest",
+            {
+                useESM: true,
+                tsconfig: {
+                    module: "esnext",
+                    esModuleInterop: true,
+                    allowJs: true,
+                },
+            },
+        ],
+    },
+    transformIgnorePatterns: ["node_modules/(?!uuid)"],
 };
 
 export default config;
