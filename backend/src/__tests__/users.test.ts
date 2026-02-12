@@ -1,5 +1,33 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, afterAll } from "@jest/globals";
 import { db } from "../db/supabaseClient.js";
+import request from "supertest";
+import app from "../app.js";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { strictMatchFields } from "../utils/cmp.js";
+
+let createdJWTs: Array<string> = [];
+
+const logCreatedJWT = (response: any) => {
+    if (response.body == undefined) {
+        return;
+    }
+
+    if (response.body.jwt == undefined) {
+        return;
+    }
+
+    createdJWTs.push(response.body.jwt);
+};
+
+const matchUsers = (userA: any, userB: any): boolean =>
+    strictMatchFields(userA, userB, [
+        "id",
+        "email",
+        "name",
+        "username",
+        "bio",
+        "profile_picture",
+    ]);
 
 describe("Users test suite", () => {
     describe("getById", () => {
@@ -35,7 +63,7 @@ describe("Users test suite", () => {
             }
 
             const { data: user, error } = await db.users.getByIdWithFavorites(
-                firstUser.id
+                firstUser.id,
             );
 
             expect(error).toBeNull();
@@ -46,7 +74,10 @@ describe("Users test suite", () => {
             expect(user).toHaveProperty("user_favorite_venues");
             expect(user).toHaveProperty("user_favorite_artists");
 
-            if (user?.user_favorite_genres && user.user_favorite_genres.length > 0) {
+            if (
+                user?.user_favorite_genres &&
+                user.user_favorite_genres.length > 0
+            ) {
                 expect(user.user_favorite_genres[0]).toHaveProperty("genre_id");
                 expect(user.user_favorite_genres[0]).toHaveProperty("genres");
             }
@@ -55,18 +86,16 @@ describe("Users test suite", () => {
 
     describe("getByUsername", () => {
         it("should get user by username", async () => {
-
-            const { data: user, error } = await db.users.getByUsername("testuser");
+            const { data: user, error } =
+                await db.users.getByUsername("testuser");
 
             expect(error).toBeNull();
             expect(user.username).toBe("testuser");
-
         });
 
         it("should return null for non-existent username", async () => {
-            const { data: user, error } = await db.users.getByUsername(
-                "usernonexistent"
-            );
+            const { data: user, error } =
+                await db.users.getByUsername("usernonexistent");
 
             expect(user).toBeNull();
         });
@@ -80,7 +109,7 @@ describe("Users test suite", () => {
             }
 
             const { data: user, error } = await db.users.getByEmail(
-                firstUser.email
+                firstUser.email,
             );
 
             expect(error).toBeNull();
@@ -102,7 +131,7 @@ describe("Users test suite", () => {
 
             const { data: updatedUser, error } = await db.users.updateProfile(
                 firstUser.id,
-                updates
+                updates,
             );
 
             expect(error).toBeNull();
@@ -128,7 +157,7 @@ describe("Users test suite", () => {
 
             const { data: updatedUser, error } = await db.users.updateProfile(
                 firstUser.id,
-                { username: testUsername }
+                { username: testUsername },
             );
 
             expect(error).toBeNull();
@@ -144,7 +173,6 @@ describe("Users test suite", () => {
 
     describe("Favorite Genres", () => {
         it("should add favorite genre", async () => {
-
             const { data: firstUser } = await db.users.getFirst();
             const { data: genres } = await db.genres.getAll();
 
@@ -159,7 +187,7 @@ describe("Users test suite", () => {
 
             const { data: favorite, error } = await db.users.addFavoriteGenre(
                 firstUser.id,
-                genreId
+                genreId,
             );
 
             expect(error).toBeNull();
@@ -172,7 +200,6 @@ describe("Users test suite", () => {
         });
 
         it("should remove favorite genre", async () => {
-
             const { data: firstUser } = await db.users.getFirst();
             const { data: genres } = await db.genres.getAll();
 
@@ -188,7 +215,7 @@ describe("Users test suite", () => {
             // then remove
             const { error } = await db.users.removeFavoriteGenre(
                 firstUser.id,
-                genreId
+                genreId,
             );
 
             expect(error).toBeNull();
@@ -197,7 +224,6 @@ describe("Users test suite", () => {
 
     describe("Favorite Venues", () => {
         it("should add favorite venue", async () => {
-
             const { data: firstUser } = await db.users.getFirst();
             const { data: venues } = await db.venues.getAll(1);
 
@@ -212,7 +238,7 @@ describe("Users test suite", () => {
 
             const { data: favorite, error } = await db.users.addFavoriteVenue(
                 firstUser.id,
-                venueId
+                venueId,
             );
 
             expect(error).toBeNull();
@@ -225,7 +251,6 @@ describe("Users test suite", () => {
         });
 
         it("should remove favorite venue", async () => {
-
             const { data: firstUser } = await db.users.getFirst();
             const { data: venues } = await db.venues.getAll(1);
 
@@ -241,7 +266,7 @@ describe("Users test suite", () => {
             // then remove
             const { error } = await db.users.removeFavoriteVenue(
                 firstUser.id,
-                venueId
+                venueId,
             );
 
             expect(error).toBeNull();
@@ -265,7 +290,7 @@ describe("Users test suite", () => {
     //         if (createError || !artist) {
     //             throw new Error("Failed to create artist");
     //         }
-            
+
     //         const artistId = artist.id;
 
     //         // remove if already exists
@@ -283,7 +308,7 @@ describe("Users test suite", () => {
 
     //         // clean up
     //         await db.users.removeFavoriteArtist(firstUser.id, artistId);
-            
+
     //     });
 
     //     it("should remove favorite artist", async () => {
@@ -318,3 +343,77 @@ describe("Users test suite", () => {
     // });
 });
 
+describe("POST /api/users", () => {
+    const path = "/api/users";
+
+    it("should be unimplemented pending an investigation into auth testing", () => {
+        console.warn("Test suite is unimplemented due to auth warnings");
+    });
+
+    it("should return 400 if no email is passed", async () => {
+        let response = await request(app)
+            .post(path)
+            .send({ password: "auto-test-pass" });
+
+        logCreatedJWT(response);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe("Non-empty email is required");
+    });
+
+    it("should return 400 if no password is passed", async () => {
+        let response = await request(app)
+            .post(path)
+            .send({ email: "auto-test@corkboard.com" });
+
+        logCreatedJWT(response);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe("Non-empty password is required");
+    });
+
+    it("should return 500 if an in-use email is passed", async () => {
+        let response = await request(app).post(path).send({
+            email: "auto-test-inuse@gmail.com",
+            password: "any-password",
+        });
+
+        logCreatedJWT(response);
+
+        expect(response.statusCode).toBe(500);
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBeDefined();
+    });
+
+    it("should return 200 if a valid email and password are passed", async () => {
+        let user = {
+            email: "cork.test@gmail.com",
+            password: "auto-test-pass",
+        };
+
+        let response = await request(app).post(path).send(user);
+
+        logCreatedJWT(response);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success);
+        expect(response.body.jwt).toBeDefined();
+
+        let id = (await db.auth.validateJWT(response.body.jwt)).data.user?.id!;
+
+        let userInDb = await db.users.getById(id);
+
+        expect(matchUsers(user, userInDb));
+    });
+});
+
+afterAll(async () => {
+    for (let i = 0; i < createdJWTs.length; i++) {
+        let jwt = createdJWTs[i]!;
+
+        let id = (await db.auth.validateJWT(jwt)).data.user?.id!;
+
+        console.log("Cleaning up user: ", id);
+        await db.auth.deleteUser(id);
+    }
+});
