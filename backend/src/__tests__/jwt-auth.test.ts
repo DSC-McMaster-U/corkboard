@@ -12,7 +12,7 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 
-const RUN_ID = Math.random().toString(16);
+const RUN_ID = Date.now() % 100000;
 const TEST_USER_EMAIL = "jwt-auth-test-" + RUN_ID + "@example.com";
 const TEST_USER_PASSWORD =
     Math.random().toString(36) + Math.random().toString(36);
@@ -254,6 +254,7 @@ describe.skip("Sign-In Business Logic", () => {
 });
 
 afterAll(async () => {
+    console.log("Cleaning user: ", TEST_USER_EMAIL);
     let test_user_id = (await db.users.getByEmail(TEST_USER_EMAIL)).data.id;
     cleanUpUser(test_user_id);
 });
