@@ -1,11 +1,12 @@
+import { router } from "expo-router";
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, ActivityIndicator } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import EventModal from '@/components/event-modal';
-import BottomPanel from '@/components/bottom-panel/bottom-panel'; 
+import BottomPanel from '@/components/bottom-panel/bottom-panel';
 import type { EventData, EventList, GenreData, Genre } from "@/constants/types";
 import { formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
-import { apiFetch , getImageUrl } from "@/api/api";
+import { apiFetch, getImageUrl } from "@/api/api";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type InfoBoxProps = {
@@ -119,18 +120,18 @@ export default function EventsScreen() {
   const eventLimit = 100;
 
   useEffect(() => {
-      const controller = new AbortController();
-      let isMounted = true;
-  
-      const fetchEvents = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24*60*60*1000)).toISOString()}`,
-            { signal: controller.signal}
-          );
-          if (isMounted) {
-            const recentShows = (res.events ?? [])
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const fetchEvents = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
+          { signal: controller.signal }
+        );
+        if (isMounted) {
+          const recentShows = (res.events ?? [])
             .sort((a, b) => {   // sort by earliest date first
               const ta = new Date(a.start_time ?? 0).getTime();
               const tb = new Date(b.start_time ?? 0).getTime();
@@ -143,78 +144,78 @@ export default function EventsScreen() {
               return ta - tb;
             })
 
-            const tokens = searchQuery
-                .toLowerCase()
-                .trim()
-                .split(/\s+/)
-                .filter(Boolean);            
-                
-            const includesAllTokens = (haystack: string) =>
-              tokens.length === 0 || tokens.every(t => haystack.includes(t));
+          const tokens = searchQuery
+            .toLowerCase()
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
 
-            const getGenreHaystack = (e: EventData) =>
-              (e.event_genres ?? [])
-                .map(gd => gd.genres?.name ?? "")
-                .join(" ")
-                .toLowerCase();
+          const includesAllTokens = (haystack: string) =>
+            tokens.length === 0 || tokens.every(t => haystack.includes(t));
 
-            const getArtistHaystack = (e: EventData) =>
-              (e.artist ?? "").toLowerCase();
+          const getGenreHaystack = (e: EventData) =>
+            (e.event_genres ?? [])
+              .map(gd => gd.genres?.name ?? "")
+              .join(" ")
+              .toLowerCase();
 
-            const getVenueHaystack = (e: EventData) =>
-              (e.venues?.name ?? "").toLowerCase();
+          const getArtistHaystack = (e: EventData) =>
+            (e.artist ?? "").toLowerCase();
 
-            // for "none", search a few useful fields
-            const getDefaultHaystack = (e: EventData) =>
-              [
-                e.title,
-                e.description ?? "",
-                e.artist ?? "",
-                e.venues?.name ?? "",
-                ...((e.event_genres ?? []).map(gd => gd.genres?.name ?? "")),
-              ]
-                .join(" ")
-                .toLowerCase();
-            
-            const filteredShows = recentShows.filter(e => {
-              if (tokens.length === 0) return true;
+          const getVenueHaystack = (e: EventData) =>
+            (e.venues?.name ?? "").toLowerCase();
 
-              switch (searchFilter) {
-                case "genre":
-                  return includesAllTokens(getGenreHaystack(e));
-                case "artist":
-                  return includesAllTokens(getArtistHaystack(e));
-                case "venue":
-                  return includesAllTokens(getVenueHaystack(e));
-                case "none":
-                default:
-                  return includesAllTokens(getDefaultHaystack(e));
-              }
-            });
+          // for "none", search a few useful fields
+          const getDefaultHaystack = (e: EventData) =>
+            [
+              e.title,
+              e.description ?? "",
+              e.artist ?? "",
+              e.venues?.name ?? "",
+              ...((e.event_genres ?? []).map(gd => gd.genres?.name ?? "")),
+            ]
+              .join(" ")
+              .toLowerCase();
 
-            setEvents(filteredShows);
-          }
-        } catch (err: any) {
-          if (isMounted && err.name !== "AbortError") {
-            setError(err.message || "Failed to fetch events");
-            console.error("Error fetching events:", err);
-          }
-        } finally {
-          if (isMounted) {
-            setLoading(false);
-          }
+          const filteredShows = recentShows.filter(e => {
+            if (tokens.length === 0) return true;
+
+            switch (searchFilter) {
+              case "genre":
+                return includesAllTokens(getGenreHaystack(e));
+              case "artist":
+                return includesAllTokens(getArtistHaystack(e));
+              case "venue":
+                return includesAllTokens(getVenueHaystack(e));
+              case "none":
+              default:
+                return includesAllTokens(getDefaultHaystack(e));
+            }
+          });
+
+          setEvents(filteredShows);
         }
-      };
-  
-      // Debounce: wait 300ms after range changes before fetching
-      const timer = setTimeout(fetchEvents, 300);
-  
-      return () => {
-        clearTimeout(timer);
-        controller.abort();
-        isMounted = false;
-      };
-    }, [costRange, dateRange, searchFilter, searchQuery]);
+      } catch (err: any) {
+        if (isMounted && err.name !== "AbortError") {
+          setError(err.message || "Failed to fetch events");
+          console.error("Error fetching events:", err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Debounce: wait 300ms after range changes before fetching
+    const timer = setTimeout(fetchEvents, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      isMounted = false;
+    };
+  }, [costRange, dateRange, searchFilter, searchQuery]);
 
 
   return (
@@ -232,11 +233,24 @@ export default function EventsScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={{paddingTop: 4, paddingBottom: 120 }}>
+        {/* Upload an event (hardcoded - fix later)*/}
+        <View className="px-4 mt-2 mb-4">
+          <TouchableOpacity
+            onPress={() => router.push("/events/upload")}
+            className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-3"
+          >
+            <FontAwesome name="plus" size={16} color="white" />
+            <Text className="text-white font-bold ml-2 text-base">
+              Submit an event
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120 }}>
           {eventList.map((event) => (
             <InfoBox
-              key={event.id} 
-              event={event}   
+              key={event.id}
+              event={event}
               onPress={() => {
                 setSelectedEvent(event);
                 setModalVisible(true);
@@ -244,14 +258,14 @@ export default function EventsScreen() {
             />
           ))}
         </ScrollView>
-        
+
         <EventModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           data={selectedEvent}
         />
-      
-      {/* Bottom panel */}
+
+        {/* Bottom panel */}
         <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} />
         {/* Loading overlay */}
         {loading && (

@@ -15,6 +15,7 @@ import userRoutes from "./routes/users.js";
 import bookmarkRoutes from "./routes/bookmarks.js";
 import genreRoutes from "./routes/genres.js";
 import imageRoutes from "./routes/images.js";
+import authRoutes from "./routes/auth.js";
 
 // Cursed way to get dir name to work with both TS and babel (jest)
 import __dirname from "./meta.cjs";
@@ -66,6 +67,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // API Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/venues", venueRoutes);
@@ -78,6 +80,7 @@ if (NODE_ENV != "test") {
     app.listen(PORT, () => {
         console.log("Staring server with environment:", NODE_ENV);
         console.log(`Corkboard API running on port ${PORT}`);
+        console.log(`Auth: http://localhost:${PORT}/api/auth`);
         console.log(`Health: http://localhost:${PORT}/api/health`);
         console.log(`Events: http://localhost:${PORT}/api/events`);
         console.log(`Venues: http://localhost:${PORT}/api/venues`);
