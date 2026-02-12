@@ -1,9 +1,15 @@
-import { describe, it, expect, afterAll } from "@jest/globals";
+import { describe, it, expect, afterAll, beforeAll } from "@jest/globals";
 import { db } from "../db/supabaseClient.js";
 import request from "supertest";
 import app from "../app.js";
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { strictMatchFields } from "../utils/cmp.js";
+import { cleanUpUser } from "../utils/cleanup.js";
+
+const existing_user = {
+    email: "user-test-" + Math.random().toString(16) + "@corkboard.com",
+    password: Math.random().toString(36) + Math.random().toString(36),
+    id: "",
+};
 
 let createdJWTs: Array<string> = [];
 
@@ -29,20 +35,25 @@ const matchUsers = (userA: any, userB: any): boolean =>
         "profile_picture",
     ]);
 
+beforeAll(async () => {
+    let created = await db.auth.signUp(
+        existing_user.email,
+        existing_user.password,
+    );
+
+    existing_user.id = created?.data.user!.id!;
+});
+
 describe("Users test suite", () => {
     describe("getById", () => {
         it("should get user by ID", async () => {
-            // get first user for testing
-            const { data: firstUser } = await db.users.getFirst();
-            if (!firstUser) {
-                throw new Error("No users found in database");
-            }
+            const userId = existing_user.id;
 
-            const { data: user, error } = await db.users.getById(firstUser.id);
+            const { data: user, error } = await db.users.getById(userId);
 
             expect(error).toBeNull();
             expect(user).toBeDefined();
-            expect(user?.id).toBe(firstUser.id);
+            expect(user?.id).toBe(userId);
             expect(user?.email).toBeDefined();
         });
 
@@ -57,18 +68,14 @@ describe("Users test suite", () => {
 
     describe("getByIdWithFavorites", () => {
         it("should get user with all favorites (genres, venues, artists)", async () => {
-            const { data: firstUser } = await db.users.getFirst();
-            if (!firstUser) {
-                throw new Error("No users found in database");
-            }
+            const userId = existing_user.id;
 
-            const { data: user, error } = await db.users.getByIdWithFavorites(
-                firstUser.id,
-            );
+            const { data: user, error } =
+                await db.users.getByIdWithFavorites(userId);
 
             expect(error).toBeNull();
             expect(user).toBeDefined();
-            expect(user?.id).toBe(firstUser.id);
+            expect(user?.id).toBe(userId);
 
             expect(user).toHaveProperty("user_favorite_genres");
             expect(user).toHaveProperty("user_favorite_venues");
@@ -103,118 +110,93 @@ describe("Users test suite", () => {
 
     describe("getByEmail", () => {
         it("should get user by email", async () => {
-            const { data: firstUser } = await db.users.getFirst();
-            if (!firstUser || !firstUser.email) {
-                throw new Error("No users with email found in database");
-            }
-
             const { data: user, error } = await db.users.getByEmail(
-                firstUser.email,
+                existing_user.email,
             );
 
             expect(error).toBeNull();
             expect(user).toBeDefined();
-            expect(user?.email).toBe(firstUser.email);
+            expect(user?.email).toBe(existing_user.email);
         });
     });
 
     describe("updateProfile", () => {
         it("should update user profile fields", async () => {
-            const { data: firstUser } = await db.users.getFirst();
-            if (!firstUser) {
-                throw new Error("No users found in database");
-            }
+            const userId = existing_user.id;
 
             const updates = {
                 bio: "Updated bio for testing",
             };
 
             const { data: updatedUser, error } = await db.users.updateProfile(
-                firstUser.id,
+                userId,
                 updates,
             );
 
             expect(error).toBeNull();
             expect(updatedUser).toBeDefined();
             expect(updatedUser?.bio).toBe(updates.bio);
-
-            // clean up: restore original bio if it existed
-            if (firstUser.bio !== undefined) {
-                await db.users.updateProfile(firstUser.id, {
-                    bio: firstUser.bio,
-                });
-            }
         });
 
         it("should update username", async () => {
-            const { data: firstUser } = await db.users.getFirst();
-            if (!firstUser) {
-                throw new Error("No users found in database");
-            }
-
-            const originalUsername = firstUser.username;
+            const userId = existing_user.id;
             const testUsername = `test_${Date.now()}`;
 
             const { data: updatedUser, error } = await db.users.updateProfile(
-                firstUser.id,
+                userId,
                 { username: testUsername },
             );
 
             expect(error).toBeNull();
             expect(updatedUser).toBeDefined();
             expect(updatedUser?.username).toBe(testUsername);
-
-            // clean up: restore original username
-            await db.users.updateProfile(firstUser.id, {
-                username: originalUsername || null,
-            });
         });
     });
 
     describe("Favorite Genres", () => {
         it("should add favorite genre", async () => {
-            const { data: firstUser } = await db.users.getFirst();
+            const userId = existing_user.id;
             const { data: genres } = await db.genres.getAll();
 
-            if (!firstUser || !genres || genres.length === 0) {
+            if (!genres || genres.length === 0) {
                 throw new Error("No users or genres found");
             }
 
             const genreId = genres[0].id;
 
             // remove if already exists
-            await db.users.removeFavoriteGenre(firstUser.id, genreId);
+            await db.users.removeFavoriteGenre(userId, genreId);
 
             const { data: favorite, error } = await db.users.addFavoriteGenre(
-                firstUser.id,
+                userId,
                 genreId,
             );
 
             expect(error).toBeNull();
             expect(favorite).toBeDefined();
-            expect(favorite?.user_id).toBe(firstUser.id);
+            expect(favorite?.user_id).toBe(userId);
             expect(favorite?.genre_id).toBe(genreId);
 
             // Clean up
-            await db.users.removeFavoriteGenre(firstUser.id, genreId);
+            await db.users.removeFavoriteGenre(userId, genreId);
         });
 
         it("should remove favorite genre", async () => {
-            const { data: firstUser } = await db.users.getFirst();
+            const userId = existing_user.id;
             const { data: genres } = await db.genres.getAll();
 
-            if (!firstUser || !genres || genres.length === 0) {
+            if (!genres || genres.length === 0) {
                 throw new Error("No users or genres found");
             }
 
             const genreId = genres[0].id;
 
             // add first
-            await db.users.addFavoriteGenre(firstUser.id, genreId);
+            await db.users.addFavoriteGenre(userId, genreId);
 
             // then remove
             const { error } = await db.users.removeFavoriteGenre(
-                firstUser.id,
+                userId,
                 genreId,
             );
 
@@ -224,48 +206,48 @@ describe("Users test suite", () => {
 
     describe("Favorite Venues", () => {
         it("should add favorite venue", async () => {
-            const { data: firstUser } = await db.users.getFirst();
+            const userId = existing_user.id;
             const { data: venues } = await db.venues.getAll(1);
 
-            if (!firstUser || !venues || venues.length === 0) {
-                throw new Error("No users or venues found");
+            if (!venues || venues.length === 0) {
+                throw new Error("No venues found");
             }
 
             const venueId = venues[0].id;
 
             // remove if already exists
-            await db.users.removeFavoriteVenue(firstUser.id, venueId);
+            await db.users.removeFavoriteVenue(userId, venueId);
 
             const { data: favorite, error } = await db.users.addFavoriteVenue(
-                firstUser.id,
+                userId,
                 venueId,
             );
 
             expect(error).toBeNull();
             expect(favorite).toBeDefined();
-            expect(favorite?.user_id).toBe(firstUser.id);
+            expect(favorite?.user_id).toBe(userId);
             expect(favorite?.venue_id).toBe(venueId);
 
             // clean up
-            await db.users.removeFavoriteVenue(firstUser.id, venueId);
+            await db.users.removeFavoriteVenue(userId, venueId);
         });
 
         it("should remove favorite venue", async () => {
-            const { data: firstUser } = await db.users.getFirst();
+            const userId = existing_user.id;
             const { data: venues } = await db.venues.getAll(1);
 
-            if (!firstUser || !venues || venues.length === 0) {
+            if (!venues || venues.length === 0) {
                 throw new Error("No users or venues found");
             }
 
             const venueId = venues[0].id;
 
             // add first
-            await db.users.addFavoriteVenue(firstUser.id, venueId);
+            await db.users.addFavoriteVenue(userId, venueId);
 
             // then remove
             const { error } = await db.users.removeFavoriteVenue(
-                firstUser.id,
+                userId,
                 venueId,
             );
 
@@ -346,10 +328,6 @@ describe("Users test suite", () => {
 describe("POST /api/users", () => {
     const path = "/api/users";
 
-    it("should be unimplemented pending an investigation into auth testing", () => {
-        console.warn("Test suite is unimplemented due to auth warnings");
-    });
-
     it("should return 400 if no email is passed", async () => {
         let response = await request(app)
             .post(path)
@@ -364,7 +342,7 @@ describe("POST /api/users", () => {
     it("should return 400 if no password is passed", async () => {
         let response = await request(app)
             .post(path)
-            .send({ email: "auto-test@corkboard.com" });
+            .send({ email: "crazy-email@corkboard.com" });
 
         logCreatedJWT(response);
 
@@ -374,7 +352,7 @@ describe("POST /api/users", () => {
 
     it("should return 500 if an in-use email is passed", async () => {
         let response = await request(app).post(path).send({
-            email: "auto-test-inuse@gmail.com",
+            email: existing_user.email,
             password: "any-password",
         });
 
@@ -408,12 +386,13 @@ describe("POST /api/users", () => {
 });
 
 afterAll(async () => {
+    await cleanUpUser(existing_user.id);
+
     for (let i = 0; i < createdJWTs.length; i++) {
         let jwt = createdJWTs[i]!;
 
         let id = (await db.auth.validateJWT(jwt)).data.user?.id!;
 
-        console.log("Cleaning up user: ", id);
-        await db.auth.deleteUser(id);
+        await cleanUpUser(id);
     }
 });

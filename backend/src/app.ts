@@ -90,3 +90,4 @@ if (NODE_ENV != "test") {
 
 // Export to link with tests
 export default app;
+export { NODE_ENV };

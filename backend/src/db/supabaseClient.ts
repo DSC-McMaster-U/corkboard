@@ -10,19 +10,20 @@ import {
 import dotenv from "dotenv";
 import { get } from "http";
 import { supabaseStorage } from "./supabaseStorage.js";
+import { NODE_ENV } from "../app.js";
 
 // Load environment variables
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey =
-    process.env.ENV == "DEV" || process.env.ENV == "TEST"
+    NODE_ENV == "development" || NODE_ENV == "test"
         ? process.env.SUPABASE_SERVICE_ROLE_KEY!
         : process.env.SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-if (process.env.ENV == "DEV" || process.env.ENV == "TEST") {
+if (NODE_ENV == "development" || NODE_ENV == "test") {
     supabase.auth.signUp = (credential: SignUpWithPasswordCredentials) =>
         supabase.auth.admin
             .createUser({
@@ -509,6 +510,19 @@ export const db = {
                 .delete()
                 .eq("user_id", userId)
                 .eq("artist_id", artistId),
+
+        // force deletes a user, not intended for production use, only available for test cleanup
+        forceDelete: (userId: string) => {
+            if (NODE_ENV != "test")
+                throw "forceDelete is not available outside of test environments";
+
+            return supabase
+                .from("users")
+                .delete()
+                .eq("id", userId)
+                .select()
+                .single();
+        },
     },
     genres: {
         // get all genres
@@ -615,8 +629,13 @@ export const db = {
         // sign out user (optional, for future use)
         signOut: () => supabase.auth.signOut(),
 
-        // delete user by id, cascades delete to public.user table
-        deleteUser: (id: string) => supabase.auth.admin.deleteUser(id),
+        // delete user by id, does not cascade delete to public.user table
+        deleteUser: (id: string) => {
+            if (NODE_ENV != "test")
+                throw "deleteUser is not available of test environments";
+
+            supabase.auth.admin.deleteUser(id);
+        },
     },
     healthCheck: () => supabase.from("venues").select("count").limit(1), // returns the number of venues
 };

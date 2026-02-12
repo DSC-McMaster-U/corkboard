@@ -1,9 +1,10 @@
 import request from "supertest";
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import app from "../app.js";
 import { db } from "../db/supabaseClient.js";
+import { cleanUpUser } from "../utils/cleanup.js";
 
 // Load environment variables
 dotenv.config();
@@ -11,14 +12,18 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 
-const TEST_USER_EMAIL = "test_auth@example.com";
-const TEST_USER_PASSWORD = "testpassword123";
+const RUN_ID = Math.random().toString(16);
+const TEST_USER_EMAIL = "jwt-auth-test-" + RUN_ID + "@example.com";
+const TEST_USER_PASSWORD =
+    Math.random().toString(36) + Math.random().toString(36);
 
 const TEST_EVENT_ID = "2430b29f-0bd3-4d49-9b70-9c8a0b26bf8e"; // "Test Event"
 
-// URGENT: tests temporarily skipped to prevent creating users with invalid emails
-// TODO: re-enable after email validation is implemented
-describe.skip("JWT Authentication", () => {
+beforeAll(async () => {
+    await db.auth.signUp(TEST_USER_EMAIL, TEST_USER_PASSWORD);
+});
+
+describe("JWT Authentication", () => {
     let jwtToken: string;
     let supabase: ReturnType<typeof createClient>;
 
@@ -35,7 +40,7 @@ describe.skip("JWT Authentication", () => {
 
         if (error || !data?.session) {
             throw new Error(
-                `Failed to get JWT token: ${error?.message || "No session"}`
+                `Failed to get JWT token: ${error?.message || "No session"}`,
             );
         }
 
@@ -115,7 +120,6 @@ describe.skip("JWT Authentication", () => {
 
     // 8. test POST & DELETE bookmarks endpoint using JWT
     it("should work with POST bookmarks using JWT", async () => {
-
         const response = await request(app)
             .post("/api/bookmarks")
             .set("Authorization", `Bearer ${jwtToken}`)
@@ -159,7 +163,7 @@ describe.skip("JWT Authentication", () => {
     it("should return 401 with expired/invalid token format", async () => {
         // test with a token that looks like JWT but is invalid
         const invalidJWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.lol";
-        
+
         const response = await request(app)
             .get("/api/users/")
             .set("Authorization", `Bearer ${invalidJWT}`);
@@ -173,11 +177,14 @@ describe.skip("JWT Authentication", () => {
 // TODO: re-enable after email validation is implemented
 describe.skip("Sign-In Business Logic", () => {
     // test sign-in using db layer methods
-    
+
     // 1. test sign-in with valid credentials
     it("should successfully sign in with valid credentials using db.auth.signIn", async () => {
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, TEST_USER_PASSWORD);
-        
+        const { data, error } = await db.auth.signIn(
+            TEST_USER_EMAIL,
+            TEST_USER_PASSWORD,
+        );
+
         expect(error).toBeNull();
         expect(data).toBeDefined();
         expect(data?.user).toBeDefined();
@@ -185,59 +192,68 @@ describe.skip("Sign-In Business Logic", () => {
         expect(data?.session?.access_token).toBeDefined();
         expect(data?.user?.email).toBe(TEST_USER_EMAIL);
     });
-    
+
     // 2. test sign-in with invalid email
     it("should return error with invalid email", async () => {
-        const { data, error } = await db.auth.signIn("hello@example.com", TEST_USER_PASSWORD);
-        
+        const { data, error } = await db.auth.signIn(
+            "hello@example.com",
+            TEST_USER_PASSWORD,
+        );
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
         expect(error?.message).toBeDefined();
     });
-    
+
     // 3. test sign-in with wrong password
     it("should return error with wrong password", async () => {
         const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "this");
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
         expect(error?.message).toBeDefined();
     });
-    
+
     // 4. test sign-in with empty email
     it("should return error with empty email", async () => {
         const { data, error } = await db.auth.signIn("", TEST_USER_PASSWORD);
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
     });
-    
+
     // 5. test sign-in with empty password
     it("should return error with empty password", async () => {
         const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "");
-        
+
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
     });
-    
+
     // 6. test sign-in with valid credentials and works with API
     it("should return valid token that works with API after sign-in", async () => {
+        const { data, error } = await db.auth.signIn(
+            TEST_USER_EMAIL,
+            TEST_USER_PASSWORD,
+        );
 
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, TEST_USER_PASSWORD);
-        
         expect(error).toBeNull();
         expect(data.session).toBeDefined();
-        
+
         const token = data.session!.access_token;
-        
+
         // GET /api/users/ should return 200 with valid token
         const response = await request(app)
             .get("/api/users/")
             .set("Authorization", `Bearer ${token}`);
-        
+
         expect(response.statusCode).toBe(200);
         expect(response.body.user).toBeDefined();
         expect(response.body.user.id).toBeDefined();
     });
 });
 
+afterAll(async () => {
+    let test_user_id = (await db.users.getByEmail(TEST_USER_EMAIL)).data.id;
+    cleanUpUser(test_user_id);
+});
