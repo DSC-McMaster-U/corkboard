@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { EventData, EventList } from '@/constants/types';
 import { apiFetch, getImageUrl } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
 
 export default function VenuePage() {
   const { 
@@ -263,6 +265,34 @@ export default function VenuePage() {
               <Text className='text-muted-foreground text-base leading-7'>
                 {description}
               </Text>
+            </View>
+          )}
+
+          {/* Map view for location */}
+          {latitude && longitude && (
+            <View className="px-4 py-4">
+              <Text className="text-foreground text-2xl font-bold mb-3">Location</Text>
+              <View className="overflow-hidden rounded-2xl h-44">
+                <MapView
+                  style={{ flex: 1 }}
+                  provider={PROVIDER_GOOGLE} 
+                  initialRegion={{
+                    latitude: Number(latitude),
+                    longitude: Number(longitude),
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: Number(latitude),
+                      longitude: Number(longitude),
+                    }}
+                    title={venueName as string}
+                    description={address as string}
+                  />
+                </MapView>
+              </View>
             </View>
           )}
 

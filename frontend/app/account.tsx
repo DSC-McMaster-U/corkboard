@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
+import { AppHeader } from '@/components/header';
 
 // function to create artist, venue, and genre tages
 function TagInput({ placeholder }: { placeholder: string }) {
@@ -53,33 +54,12 @@ export default function AccountPage() {
 
   return (
     
-
     <View className="flex-1 bg-[#FDF1E6]">
 
         <Stack.Screen options={{ headerShown: false }} />
 
-    <View style={{ height: 44, backgroundColor: '#3E2723' }} />
         {/* Header */}
-        <View className="bg-[#AE6E4E] px-4 py-7">
-          <View className="flex-row items-center">
-            {/* Back button */}
-            <TouchableOpacity
-              onPress={() => router.back()}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              className="w-11 h-11 justify-center"
-            >
-              <Ionicons name="arrow-back" size={26} color="white" />
-            </TouchableOpacity>
-
-            {/* Center title */}
-            <View className="flex-1 items-center">
-              <Text className="text-white text-xl font-semibold">Account</Text>
-            </View>
-
-            {/* Right spacer to keep title centered */}
-            <View className="w-11 h-11" />
-          </View>
-        </View>
+        <AppHeader title="Account" showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Avatar */}
