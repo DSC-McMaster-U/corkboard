@@ -1,29 +1,68 @@
 import React from 'react';
 import { useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/header';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 
 
 type TagList = {
   placeholder: string;
-  options: string[];
+  endpoint: string;
   maxDropdownHeight?: number;
 };
 
 // function to create artist, venue, and genre tages
-function TagInput({ placeholder, options, maxDropdownHeight = 100 }: TagList) {
+function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
   const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
+
+  const [options, setOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // prevent duplicates
   const normalizedTags = useMemo(
     () => new Set(tags.map((t) => t.trim().toLowerCase())),
     [tags]
   );
+
+  
+  // Fetch all options from backend
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        // Expected shape: { genres: [...] } or { artists: [...] } or { venues: [...] }
+        const arr =
+          data.genres ??
+          data.artists ??
+          data.venues ??
+          [];
+
+        // Turn objects into strings (supports {name:"Pop"} or plain "Pop")
+        const names = arr.map((x: any) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
+
+        if (!cancelled) setOptions(names);
+      } catch (e) {
+        if (!cancelled) setOptions([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [endpoint]);
 
   // filter options based on user's input text
   const filtered = useMemo(() => {
@@ -148,13 +187,13 @@ export default function AccountPage() {
           <Input placeholder="JohnDoe@domain.com" />
 
           <Label text="Favourite Genres" />
-          <TagInput placeholder="Search genre" options={["Pop", "Rock", "Indie"]} />
+          <TagInput placeholder="Search genre" endpoint={"http://10.0.2.2:3000/api/genres"} />
 
           <Label text="Favourite Artists" />
-          <TagInput placeholder="Search artists" options={["A", "B", "C"]} />
+          <TagInput placeholder="Search artists" endpoint={"http://10.0.2.2:3000/api/genres"} />
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder="Search venues" options={["Corktown", "McIntyre", "Bar"]} />
+          <TagInput placeholder="Search venues" endpoint={"http://10.0.2.2:3000/api/venues"} />
         </View>
 
         {/* Logout Button */}
