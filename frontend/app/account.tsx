@@ -4,8 +4,6 @@ import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/header';
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-
 
 
 type TagList = {
