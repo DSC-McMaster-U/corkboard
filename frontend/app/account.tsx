@@ -1,27 +1,92 @@
 import React from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
+import { AppHeader } from '@/components/header';
+
+
+type TagList = {
+  placeholder: string;
+  endpoint: string;
+  maxDropdownHeight?: number;
+};
 
 // function to create artist, venue, and genre tages
-function TagInput({ placeholder }: { placeholder: string }) {
+function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
   const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState('');
+  const [open, setOpen] = useState(false);
 
-  const addTag = () => {
-    if (!text.trim()) return;
+  const [options, setOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    // prevent duplicates
-    if (tags.includes(text.trim())) return;
+  // prevent duplicates
+  const normalizedTags = useMemo(
+    () => new Set(tags.map((t) => t.trim().toLowerCase())),
+    [tags]
+  );
 
-    setTags([...tags, text.trim()]);
-    setText('');
-  };
+  
+  // Fetch all options from backend
+  React.useEffect(() => {
+    let cancelled = false;
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        // Expected shape: { genres: [...] } or { artists: [...] } or { venues: [...] }
+        const arr =
+          data.genres ??
+          data.artists ??
+          data.venues ??
+          [];
+
+        // Turn objects into strings (supports {name:"Pop"} or plain "Pop")
+        const names = arr.map((x: any) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
+
+        if (!cancelled) setOptions(names);
+      } catch (e) {
+        if (!cancelled) setOptions([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [endpoint]);
+
+  // filter options based on user's input text
+  const filtered = useMemo(() => {
+  const q = text.trim().toLowerCase();
+
+  const base = q
+    ? options.filter((o) => o.toLowerCase().includes(q))
+    : options;
+
+  return base.filter((o) => !normalizedTags.has(o.toLowerCase()));
+}, [text, options, normalizedTags]);
+
+
+  const addTag = (value: string) => {
+  const v = value.trim();
+  if (!v) return;
+  if (normalizedTags.has(v.toLowerCase())) return;
+
+  setTags((prev) => [...prev, v]);
+  setText("");
+  setOpen(false);
+};
+
+  const removeTag = (value: string) => {
+  setTags((prev) => prev.filter((t) => t !== value));
+};
 
   return (
     <View className="bg-[#F6D5B8] rounded-xl px-2 py-2">
@@ -38,13 +103,43 @@ function TagInput({ placeholder }: { placeholder: string }) {
 
         <TextInput
           value={text}
-          onChangeText={setText}
+           onChangeText={(v) => {
+            setText(v);
+            setOpen(true);
+          }}
           placeholder={placeholder}
-          onSubmitEditing={addTag}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            // delay so tapping an option still works before it closes
+            setTimeout(() => setOpen(false), 150);
+          }}
+          onSubmitEditing={() => setOpen(false)} // no custom tags
           className="text-gray-800 px-2 py-1 min-w-[80px]"
           returnKeyType="done"
         />
       </View>
+      {/* Scrollable Dropdown for tags*/}
+      {open && filtered.length > 0 && (
+    <View
+      className="mt-2 bg-white rounded-xl overflow-hidden"
+      style={{ maxHeight: maxDropdownHeight }}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+      >
+        {filtered.map((item) => (
+          <TouchableOpacity
+            key={item}
+            onPress={() => addTag(item)}
+            className="px-3 py-3 border-b border-gray-200"
+          >
+            <Text className="text-sm text-gray-800">{item}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  )}
     </View>
   );
 }
@@ -53,35 +148,14 @@ export default function AccountPage() {
 
   return (
     
-
     <View className="flex-1 bg-[#FDF1E6]">
 
         <Stack.Screen options={{ headerShown: false }} />
 
-    <View style={{ height: 44, backgroundColor: '#3E2723' }} />
         {/* Header */}
-        <View className="bg-[#AE6E4E] px-4 py-7">
-          <View className="flex-row items-center">
-            {/* Back button */}
-            <TouchableOpacity
-              onPress={() => router.back()}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              className="w-11 h-11 justify-center"
-            >
-              <Ionicons name="arrow-back" size={26} color="white" />
-            </TouchableOpacity>
+        <AppHeader title="Account" showBack />
 
-            {/* Center title */}
-            <View className="flex-1 items-center">
-              <Text className="text-white text-xl font-semibold">Account</Text>
-            </View>
-
-            {/* Right spacer to keep title centered */}
-            <View className="w-11 h-11" />
-          </View>
-        </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
         <View className="items-center mt-10">
           <View className="w-32 h-32 rounded-full bg-blue-400 items-center justify-center">
@@ -111,13 +185,13 @@ export default function AccountPage() {
           <Input placeholder="JohnDoe@domain.com" />
 
           <Label text="Favourite Genres" />
-          <TagInput placeholder="Search genre" />
+          <TagInput placeholder="Search genre" endpoint={"http://10.0.2.2:3000/api/genres"} />
 
           <Label text="Favourite Artists" />
-          <TagInput placeholder="Search artists" />
+          <TagInput placeholder="Search artists" endpoint={"http://10.0.2.2:3000/api/genres"} />
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder="Search venues" />
+          <TagInput placeholder="Search venues" endpoint={"http://10.0.2.2:3000/api/venues"} />
         </View>
 
         {/* Logout Button */}
