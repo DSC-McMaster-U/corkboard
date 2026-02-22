@@ -313,6 +313,10 @@ export const db = {
                         cost,
                         status,
                         image,
+                        source_url,
+                        source_type,
+                        ingestion_status,
+                        created_at,
                         venues (
                             id,
                             name,
@@ -320,6 +324,13 @@ export const db = {
                             venue_type,
                             latitude,
                             longitude
+                        ),
+                        event_genres (
+                            genre_id,
+                            genres (
+                                id,
+                                name
+                            )
                         ),
                         artists (
                             id,

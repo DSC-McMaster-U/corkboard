@@ -53,6 +53,7 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
     };
 
     const handleRemoveBookmark = () => {
+        console.log('BookmarkCard removing - event.id:', event.id, 'typeof:', typeof event.id);
         onRemove(event.id.toString());
     };
 
@@ -184,10 +185,25 @@ export function Bookmarks() {
                     });
 
                     // Extract events from bookmarks response
-                    const events: EventData[] = response.bookmarks.map((bookmark) => ({
-                        ...bookmark.events,
-                        id: parseInt(bookmark.event_id) || bookmark.events.id,
-                    }));
+                    const eventsMap = new Map<string, EventData>();
+                    response.bookmarks.forEach((bookmark) => {
+                        if (!bookmark.events) {
+                            console.warn('Bookmark missing event data:', bookmark.event_id);
+                            return; // Skip bookmarks without event data
+                        }
+                        
+                        // Debug log to see what we're working with
+                        console.log('Bookmark event_id:', bookmark.event_id, 'type:', typeof bookmark.event_id);
+                        console.log('Bookmark events.id:', bookmark.events.id, 'type:', typeof bookmark.events.id);
+                        
+                        // Use the UUID directly from the bookmark events (bookmark.event_id should match)
+                        const eventId = String(bookmark.events.id);
+                        eventsMap.set(eventId, {
+                            ...bookmark.events,
+                            id: String(bookmark.events.id), // Keep as string ID to match backend UUID
+                        } as any);
+                    });
+                    const events: EventData[] = Array.from(eventsMap.values());
 
                     setBookmarks(events);
                 } catch (err) {
