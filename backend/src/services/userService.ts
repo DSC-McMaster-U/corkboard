@@ -45,4 +45,9 @@ export const userService = {
         if (error) throw error;
         return data;
     },
+    getUserByIDWithFavorites: async (userId: string) => {
+        const { data, error } = await db.users.getByIdWithFavorites(userId);
+        if (error) throw error;
+        return data;
+    }
 };

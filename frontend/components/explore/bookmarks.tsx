@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Text, TouchableOpacity, View, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { apiFetch, apiFetchAuth } from '@/api/api';
+import { apiFetchAuth } from '@/api/api';
 import { useFocusEffect } from 'expo-router';
 import { EventData } from '@/constants/types';
 
@@ -53,7 +53,6 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
     };
 
     const handleRemoveBookmark = () => {
-        console.log('BookmarkCard removing - event.id:', event.id, 'typeof:', typeof event.id);
         onRemove(event.id.toString());
     };
 
@@ -184,10 +183,6 @@ export function Bookmarks() {
                             console.warn('Bookmark missing event data:', bookmark.event_id);
                             return; // Skip bookmarks without event data
                         }
-                        
-                        // Debug log to see what we're working with
-                        console.log('Bookmark event_id:', bookmark.event_id, 'type:', typeof bookmark.event_id);
-                        console.log('Bookmark events.id:', bookmark.events.id, 'type:', typeof bookmark.events.id);
                         
                         // Use the UUID directly from the bookmark events (bookmark.event_id should match)
                         const eventId = String(bookmark.events.id);

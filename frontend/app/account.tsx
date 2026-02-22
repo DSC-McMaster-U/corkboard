@@ -1,9 +1,10 @@
-import React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/header';
+import { UserData } from '@/constants/types';
+import { apiFetchAuth } from '@/api/api';
 
 
 type TagList = {
@@ -29,7 +30,7 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
 
   
   // Fetch all options from backend
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
 
     async function load() {
@@ -145,7 +146,28 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
 }
 
 export default function AccountPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchAccountData = async () => {
+      try {
+        setLoading(true);
+        const res = await apiFetchAuth<UserData>('api/users/', {
+          method: 'GET',
+        });
+        console.log(res);
+        setUserData(res);
+      } catch (e) {
+        console.error("Failed to fetch user data:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAccountData();
+  }, []);
+    
   return (
     
     <View className="flex-1 bg-[#FDF1E6]">

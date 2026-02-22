@@ -5,22 +5,22 @@ import { authService } from "../services/authService.js";
 
 const router = express.Router();
 
-// GET /api/users/ - Converts jwt token to user information
-router.get(
-    "/",
-    authService.validateToken,
-    async (req: Request, res: Response) => {
-        const user = authService.getUser(res);
+// // GET /api/users/ - Converts jwt token to user information
+// router.get(
+//     "/",
+//     authService.validateToken,
+//     async (req: Request, res: Response) => {
+//         const user = authService.getUser(res);
 
-        // handled unauthorized user
-        if (user == undefined) {
-            res.status(401).json({ error: "Unauthorized" });
-            return;
-        }
+//         // handled unauthorized user
+//         if (user == undefined) {
+//             res.status(401).json({ error: "Unauthorized" });
+//             return;
+//         }
 
-        res.status(200).json({ user: user });
-    },
-);
+//         res.status(200).json({ user: user });
+//     },
+// );
 
 // POST /api/users/:userId - Updates user information
 
@@ -123,5 +123,26 @@ router.post("/", async (req: Request, res: Response) => {
             res.status(500).json({ success: false, error: err.message });
         });
 });
+
+// GET /api/users/ - Gets user information for the authenticated user, including their favorites
+router.get("/", 
+    authService.validateToken, 
+    async (req: Request, res: Response) => {
+    const authenticatedUser = authService.getUser(res);
+
+    if (authenticatedUser == undefined) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+
+    userService
+        .getUserByIDWithFavorites(authenticatedUser.id)
+        .then((data) => {
+            res.status(200).json({ success: true, user: data });
+        })
+        .catch((err: Error) => {
+            res.status(500).json({ success: false, error: err.message });
+        });
+}); 
 
 export default router;

@@ -1,3 +1,5 @@
+import { Timestamp } from "react-native-reanimated/lib/typescript/commonTypes";
+
 export type EventData = {
   id: number,
   title: string,
@@ -40,4 +42,25 @@ export type Genre = {
 export type GenreData = {
   genres: Genre;
   genre_id: string;
+}
+
+export type UserData = {
+  id: string;
+  email: string;
+  name: string | undefined;
+  created_at: Timestamp;
+  username: string | undefined;
+  profile_picture: string | undefined;
+  bio: string | undefined;
+  user_favorite_genres: Array<GenreData>;
+  user_favorite_venues: Array<VenueData>;
+  user_favorite_artists: Array<{
+    artist_id: string;
+    artists: {
+      id: string;
+      name: string;
+      bio: string;
+      image: string;
+    };
+  }>;
 }
