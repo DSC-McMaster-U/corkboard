@@ -22,52 +22,58 @@ router.get(
     },
 );
 
-
 // POST /api/users/:userId - Updates user information
 
 // PUT /api/users/:userId - Updates user profile
-router.put( "/:userId", authService.validateToken, async (req: Request, res: Response) => {
-    const authenticatedUser = authService.getUser(res);
+router.put(
+    "/:userId",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const authenticatedUser = authService.getUser(res);
 
-    if (authenticatedUser == undefined) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
+        if (authenticatedUser == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
 
-    // 2. SECURITY CHECK: Ensure URL param matches the logged-in user's ID
-    const targetUserId = req.params.userId;
+        // 2. SECURITY CHECK: Ensure URL param matches the logged-in user's ID
+        const targetUserId = req.params.userId;
 
-    if (!targetUserId) {
-      res.status(400).json({ error: "User ID is required" });
-      return;
-    }
+        if (!targetUserId) {
+            res.status(400).json({ error: "User ID is required" });
+            return;
+        }
 
-    if (authenticatedUser.id !== targetUserId) {
-      res.status(403).json({ error: "Forbidden: You can only update your own account." });
-      return;
-    }
+        if (authenticatedUser.id !== targetUserId) {
+            res.status(403).json({
+                error: "Forbidden: You can only update your own account.",
+            });
+            return;
+        }
 
-    // 3. Extract fields (undefined fields are handled by your service)
-    const { name, username, profile_picture, bio } = req.body;
+        // 3. Extract fields (undefined fields are handled by your service)
+        const { name, username, profile_picture, bio } = req.body;
 
-    // 4. Call your existing service
-    try {
-      const data = await userService.updateUser(
-        targetUserId,
-        name,
-        username,
-        profile_picture,
-        bio
-      );
-      
-      res.status(200).json({ success: true, user: data });
-    } catch (err: any) {
-      console.error("Update failed:", err);
-      res.status(500).json({ success: false, error: err.message || "Internal Server Error" });
-    }
-  }
+        // 4. Call your existing service
+        try {
+            const data = await userService.updateUser(
+                targetUserId,
+                name,
+                username,
+                profile_picture,
+                bio,
+            );
+
+            res.status(200).json({ success: true, user: data });
+        } catch (err: any) {
+            console.error("Update failed:", err);
+            res.status(500).json({
+                success: false,
+                error: err.message || "Internal Server Error",
+            });
+        }
+    },
 );
-
 
 // POST /api/users/
 router.post("/", async (req: Request, res: Response) => {

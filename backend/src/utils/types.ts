@@ -24,3 +24,8 @@ type IngestionStatus =
     | "success"
     | "failed"
     | undefined;
+
+const ENV_VALUES = ["test", "development", "production"] as const; // type: readonly
+export type NODE_ENVS = (typeof ENV_VALUES)[number];
+
+export { ENV_VALUES };
