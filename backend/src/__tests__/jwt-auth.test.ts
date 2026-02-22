@@ -1,9 +1,10 @@
 import request from "supertest";
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import app from "../app.js";
 import { db } from "../db/supabaseClient.js";
+import { cleanUpUser } from "../utils/cleanup.js";
 
 // Load environment variables
 dotenv.config();
@@ -11,14 +12,18 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 
-const TEST_USER_EMAIL = "test_auth@example.com";
-const TEST_USER_PASSWORD = "testpassword123";
+const RUN_ID = Date.now() % 100000;
+const TEST_USER_EMAIL = "jwt-auth-test-" + RUN_ID + "@example.com";
+const TEST_USER_PASSWORD =
+    Math.random().toString(36) + Math.random().toString(36);
 
 const TEST_EVENT_ID = "2430b29f-0bd3-4d49-9b70-9c8a0b26bf8e"; // "Test Event"
 
-// URGENT: tests temporarily skipped to prevent creating users with invalid emails
-// TODO: re-enable after email validation is implemented
-describe.skip("JWT Authentication", () => {
+beforeAll(async () => {
+    await db.auth.signUp(TEST_USER_EMAIL, TEST_USER_PASSWORD);
+});
+
+describe("JWT Authentication", () => {
     let jwtToken: string;
     let supabase: ReturnType<typeof createClient>;
 
@@ -246,4 +251,10 @@ describe.skip("Sign-In Business Logic", () => {
         expect(response.body.user).toBeDefined();
         expect(response.body.user.id).toBeDefined();
     });
+});
+
+afterAll(async () => {
+    console.log("Cleaning user: ", TEST_USER_EMAIL);
+    let test_user_id = (await db.users.getByEmail(TEST_USER_EMAIL)).data.id;
+    cleanUpUser(test_user_id);
 });

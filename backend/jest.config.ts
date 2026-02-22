@@ -61,7 +61,7 @@ const config: Config = {
     // forceCoverageMatch: [],
 
     // A path to a module which exports an async function that is triggered once before all test suites
-    // globalSetup: undefined,
+    globalSetup: "<rootDir>/.jest/globalSetup.ts",
 
     // A path to a module which exports an async function that is triggered once after all test suites
     // globalTeardown: undefined,
@@ -139,7 +139,7 @@ const config: Config = {
     // runner: "jest-runner",
 
     // The paths to modules that run some code to configure or set up the testing environment before each test
-    setupFiles: ["<rootDir>/.jest/setTestVars.ts"],
+    //setupFiles: ["<rootDir>/.jest/setTestVars.ts"],
 
     // A list of paths to modules that run some code to configure or set up the testing framework before each test
     // setupFilesAfterEnv: [],
@@ -178,7 +178,7 @@ const config: Config = {
     // transform: undefined,
 
     // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-    transformIgnorePatterns: ["\\\\node_modules\\\\", "\\.pnp\\.[^\\\\]+$"],
+    transformIgnorePatterns: ["/node_modules/(?!uuid)/", "\\.pnp\\.[^\\\\]+$"],
 
     // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
     // unmockedModulePathPatterns: undefined,

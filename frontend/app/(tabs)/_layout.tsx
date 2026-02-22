@@ -58,7 +58,7 @@ export default function TabLayout() {
         name="events"
         options={{
           title: 'Shows Near You',
-          header: () => <AppHeader title = "Shows Near You" />,
+          header: () => <AppHeader title = "Shows Near You"/>,
           tabBarIcon: ({ color }) => (<Ionicons size={size} name="calendar" color={color} />),
         }}
       />
