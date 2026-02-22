@@ -6,7 +6,7 @@ import EventModal from '@/components/event-modal';
 import BottomPanel from '@/components/bottom-panel/bottom-panel';
 import type { EventData, EventList, GenreData, Genre } from "@/constants/types";
 import { formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
-import { apiFetch, getImageUrl } from "@/api/api";
+import { apiFetch } from "@/api/api";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type InfoBoxProps = {
@@ -18,7 +18,7 @@ const PLACEHOLDER_IMAGE =
   "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
 
 function InfoBox({ event, onPress }: InfoBoxProps) {
-  const imageUri = event.image ? getImageUrl(event.image) : PLACEHOLDER_IMAGE;
+  const imageUri = event.image || PLACEHOLDER_IMAGE;
   const venueName = event.venues?.name || "Unspecified venue";
   const artist = event.artist || "Unspecified artist";
   const genresText = event.event_genres && event.event_genres.length > 0

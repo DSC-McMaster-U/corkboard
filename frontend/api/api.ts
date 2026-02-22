@@ -34,6 +34,7 @@ export async function apiFetch<T>(
   return (await res.json()) as T;
 }
 
+// for getting local images (for develoepment/testing, not used in production)
 export function getImageUrl(imagePath: string | undefined): string {
   if (imagePath) {
     return `${BASE_URL}${imagePath}`;

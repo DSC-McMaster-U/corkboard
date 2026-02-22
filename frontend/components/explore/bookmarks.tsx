@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Text, TouchableOpacity, View, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { apiFetch, getImageUrl } from '@/api/api';
+import { apiFetch } from '@/api/api';
 import { useFocusEffect } from 'expo-router';
 import { EventData } from '@/constants/types';
 
@@ -78,7 +78,7 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
                 <View className="w-10 h-10 rounded-lg overflow-hidden bg-accent/30 items-center justify-center mr-3">
                     {event.image ? (
                         <Image
-                            source={{ uri: getImageUrl(event.image) }}
+                            source={{ uri: event.image }}
                             className="w-full h-full"
                             resizeMode="cover"
                         />

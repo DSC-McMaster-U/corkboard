@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { getImageUrl, apiFetch } from '@/api/api';
+import { apiFetch } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface BookmarkResponse {
@@ -55,8 +55,10 @@ export default function ShowDetailsPage() {
   }, [event_id]);
 
   // Get the proper image URL
-  const imageUri = image ? getImageUrl(image as string) : null;
+  
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+  const imgNormalized = Array.isArray(image) ? image[0] : image;  
+  const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
 
   // Parse genres if passed as JSON string
   const parsedGenres: string[] = genres
@@ -172,7 +174,7 @@ export default function ShowDetailsPage() {
       <View className='bg-accent'>
         <View className='relative h-[42vh]'>
           <Image
-            source={{ uri: imageUri || PLACEHOLDER_IMAGE }}
+            source={{ uri: imageUri }}
             className='w-full h-full'
             resizeMode='cover'
           />

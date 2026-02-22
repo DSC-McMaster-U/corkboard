@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { FontAwesome, Feather } from '@expo/vector-icons';
-import { apiFetch, getImageUrl } from '@/api/api';
+import { apiFetch } from '@/api/api';
 import type { EventData, EventList } from '@/constants/types';
 import { formatEventDateTimeToDate } from '@/scripts/formatDateHelper';
 
@@ -27,7 +27,7 @@ const FILTER_OPTIONS: { key: Filter; label: string }[] = [
 ];
 
 function SearchResultCard({ event, onPress }: { event: EventData; onPress: () => void }) {
-    const imageUri = event.image ? getImageUrl(event.image) : PLACEHOLDER_IMAGE;
+    const imageUri = event.image || PLACEHOLDER_IMAGE;
     const venueName = event.venues?.name || 'Unspecified venue';
     const artist = event.artist || 'Unspecified artist';
 

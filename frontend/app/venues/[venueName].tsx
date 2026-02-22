@@ -4,7 +4,7 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { EventData, EventList } from '@/constants/types';
-import { apiFetch, getImageUrl } from '@/api/api';
+import { apiFetch } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -170,9 +170,10 @@ export default function VenuePage() {
   const processedVenueType = normalizedVenueType
     ? normalizedVenueType.charAt(0).toUpperCase() + normalizedVenueType.slice(1)
     : "TBD";
-
-  const imageUri = image ? getImageUrl(image as string) : null;
+   
+  const imgNormalized = Array.isArray(image) ? image[0] : image;  
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+  const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
 
   return (
     <>
@@ -186,7 +187,7 @@ export default function VenuePage() {
       <View className='bg-accent'>
         <View className='relative h-[42vh]'>
           <Image
-            source={{ uri: imageUri || PLACEHOLDER_IMAGE }}
+            source={{ uri: imageUri }}
             className='w-full h-full'
             resizeMode='cover'
           />
@@ -349,7 +350,7 @@ interface ShowCardProps {
 function ShowCard({ show }: ShowCardProps) {
   const PLACEHOLDER_IMAGE =
     "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imageUri = show.image ? getImageUrl(show.image) : PLACEHOLDER_IMAGE;
+  const imageUri = show.image || PLACEHOLDER_IMAGE;
 
   const handlePress = () => {
     router.push({
