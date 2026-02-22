@@ -7,9 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Props = {
   title: string;
   showBack?: boolean;
+  showProfile?: boolean;
 };
 
-export function AppHeader({ title, showBack = false }: Props) {
+export function AppHeader({ title, showBack = false, showProfile = true }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -50,12 +51,14 @@ export function AppHeader({ title, showBack = false }: Props) {
           </Text>
 
           {/* Profile icon */}
-          <TouchableOpacity
-            onPress={() => router.push('/account')}
-            style={{ position: 'absolute', right: 0 }}
-          >
-            <Ionicons name="person-circle-outline" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+          {showProfile && (
+            <TouchableOpacity
+              onPress={() => router.push('/account')}
+              style={{ position: 'absolute', right: 0 }}
+            >
+              <Ionicons name="person-circle-outline" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
 
       </View>

@@ -5,7 +5,7 @@ import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/header';
 import { UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type TagList = {
   placeholder: string;
@@ -171,6 +171,11 @@ export default function AccountPage() {
 
     fetchAccountData();
   }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('authToken');
+    router.replace('/(auth)/login');
+  }
     
   return (
     
@@ -179,7 +184,7 @@ export default function AccountPage() {
         <Stack.Screen options={{ headerShown: false }} />
 
         {/* Header */}
-        <AppHeader title="Account" showBack />
+        <AppHeader title="Account" showBack showProfile={false} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
@@ -223,7 +228,7 @@ export default function AccountPage() {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity className="bg-orange-400 mx-16 mt-10 py-4 rounded-full">
+        <TouchableOpacity className="bg-orange-400 mx-16 mt-10 py-4 rounded-full" onPress={handleLogout}>
           <Text className="text-center text-white font-bold text-lg">
             Logout
           </Text>
