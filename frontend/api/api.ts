@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 // works for android emulator and iOS simulator
 const BASE_URL = __DEV__ && Platform.OS === 'android' 
@@ -36,6 +37,7 @@ export async function apiFetch<T>(
 }
 
 // Auth-aware fetch: automatically attaches stored JWT if present
+// On 401, clears token and redirects to login
 export async function apiFetchAuth<T>(
   path: string,
   init: RequestInit = {},
@@ -47,13 +49,22 @@ export async function apiFetchAuth<T>(
     ? { Authorization: `Bearer ${token}` }
     : {};
 
-  return apiFetch<T>(path, {
-    ...init,
-    headers: {
-      ...(init.headers || {}),
-      ...authHeaders,
-    },
-  }, signal);
+  try {
+    return await apiFetch<T>(path, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        ...authHeaders,
+      },
+    }, signal);
+  } catch (error: any) {
+    // On 401 Unauthorized, clear token and redirect to login
+    if (error?.status === 401) {
+      await AsyncStorage.removeItem('authToken');
+      router.replace('/(auth)/login');
+    }
+    throw error;
+  }
 }
 
 // for getting local images (for develoepment/testing, not used in production)
