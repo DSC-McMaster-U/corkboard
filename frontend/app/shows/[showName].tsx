@@ -34,7 +34,10 @@ export default function ShowDetailsPage() {
 
   // Check if event is already bookmarked on mount
   useEffect(() => {
-    if (!event_id) return;
+    if (!event_id) {
+      console.log('No event_id provided');
+      return;
+    }
 
     const checkBookmarkStatus = async () => {
       try {

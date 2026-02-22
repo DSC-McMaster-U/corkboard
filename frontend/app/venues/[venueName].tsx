@@ -357,14 +357,22 @@ function ShowCard({ show }: ShowCardProps) {
       pathname: "/shows/[showName]",
       params: {
         showName: show.title,
-        artist: show.artist,
-        description: show.description,
-        start_time: show.start_time,
-        cost: show.cost,
-        image: show.image,
-        venue_name: show.venues?.name,
-        venue_address: show.venues?.address,
-        source_url: show.source_url,
+          description: show.description || '',
+          start_time: show.start_time,
+          cost: show.cost?.toString() || '',
+          artist: show.artist || '',
+          image: show.image || '',
+          venue_name: show.venues?.name || '',
+          venue_id: show.venues?.id || '',
+          venue_address: show.venues?.address || '',
+          venue_latitude: show.venues?.latitude?.toString() || '',
+          venue_longtidue: show.venues?.longitude?.toString() || '',
+          venue_type: show.venues?.venue_type || '',
+          source_url: show.source_url || '',
+          genres: JSON.stringify(
+              (show.event_genres || []).map((eg) => eg.genres?.name || '')
+          ),
+          event_id: show.id.toString(),
       },
     });
   };
