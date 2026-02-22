@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/header';
 import { UserData } from '@/constants/types';
-import { apiFetchAuth } from '@/api/api';
+import { apiFetch, apiFetchAuth } from '@/api/api';
 
 
 type TagList = {
@@ -36,7 +36,7 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch(endpoint);
+        const res = await apiFetch(endpoint);
         const data = await res.json();
 
         // Expected shape: { genres: [...] } or { artists: [...] } or { venues: [...] }
@@ -145,6 +145,11 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
   );
 }
 
+type UserDataResponse = {
+  success: boolean;
+  user: UserData;
+}
+
 export default function AccountPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,11 +158,10 @@ export default function AccountPage() {
     const fetchAccountData = async () => {
       try {
         setLoading(true);
-        const res = await apiFetchAuth<UserData>('api/users/', {
+        const res = await apiFetchAuth<UserDataResponse>('api/users/', {
           method: 'GET',
         });
-        console.log(res);
-        setUserData(res);
+        setUserData(res.user);
       } catch (e) {
         console.error("Failed to fetch user data:", e);
       } finally {
@@ -179,23 +183,25 @@ export default function AccountPage() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
-        <View className="items-center mt-10">
-          <View className="w-32 h-32 rounded-full bg-blue-400 items-center justify-center">
-            <Image
-              source={{ uri: 'https://placekitten.com/300/300' }}
-              className="w-28 h-28 rounded-full"
-            />
+        <View className="items-center mt-10"> 
+          <View className="w-36 h-36 rounded-full bg-blue-400 items-center justify-center">
+            {userData && 
+              <Image
+                source={{ uri: userData?.profile_picture }}
+                className="w-36 h-36 rounded-full border-2 border-black shadow-lg"
+              />
+            }
           </View>
         </View>
 
         {/* Form */}
         <View className="px-6 mt-6">
           <Label text="Username" />
-          <Input placeholder="User123456789" />
+          <Input placeholder={loading ? "Loading username..." : userData?.name || "Enter username"} />
 
           <Label text="Bio" />
           <Input
-            placeholder="Write about your musical interests!"
+            placeholder={loading ? "Loading user bio..." : userData?.bio || "Tell us about yourself"}
             multiline
             height={80}
           />
@@ -204,16 +210,16 @@ export default function AccountPage() {
           </Text>
 
           <Label text="Email Address" />
-          <Input placeholder="JohnDoe@domain.com" />
+          <Input placeholder={loading ? "Loading email..." : userData?.email || "Enter email address"} />
 
           <Label text="Favourite Genres" />
-          <TagInput placeholder="Search genre" endpoint={"http://10.0.2.2:3000/api/genres"} />
+          <TagInput placeholder="Search genre" endpoint={"/api/genres"} />
 
           <Label text="Favourite Artists" />
-          <TagInput placeholder="Search artists" endpoint={"http://10.0.2.2:3000/api/genres"} />
+          <TagInput placeholder="Search artists" endpoint={"/api/genres"} />
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder="Search venues" endpoint={"http://10.0.2.2:3000/api/venues"} />
+          <TagInput placeholder="Search venues" endpoint={"/api/venues"} />
         </View>
 
         {/* Logout Button */}
