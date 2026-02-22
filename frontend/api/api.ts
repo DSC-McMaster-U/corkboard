@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // works for android emulator and iOS simulator
 const BASE_URL = __DEV__ && Platform.OS === 'android' 
@@ -32,6 +33,27 @@ export async function apiFetch<T>(
     throw err;
   }
   return (await res.json()) as T;
+}
+
+// Auth-aware fetch: automatically attaches stored JWT if present
+export async function apiFetchAuth<T>(
+  path: string,
+  init: RequestInit = {},
+  signal?: AbortSignal,
+): Promise<T> {
+  const token = await AsyncStorage.getItem('authToken');
+
+  const authHeaders: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
+  return apiFetch<T>(path, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      ...authHeaders,
+    },
+  }, signal);
 }
 
 // for getting local images (for develoepment/testing, not used in production)

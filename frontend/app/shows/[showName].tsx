@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { apiFetch } from '@/api/api';
+import { apiFetch, apiFetchAuth } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface BookmarkResponse {
@@ -38,9 +38,7 @@ export default function ShowDetailsPage() {
 
     const checkBookmarkStatus = async () => {
       try {
-        const response = await apiFetch<BookmarkResponse>('api/bookmarks', {
-          headers: { Authorization: 'TESTING_BYPASS' },
-        });
+        const response = await apiFetchAuth<BookmarkResponse>('api/bookmarks');
 
         const isAlreadyBookmarked = response.bookmarks.some(
           (bookmark) => bookmark.event_id === event_id
@@ -103,15 +101,13 @@ export default function ShowDetailsPage() {
     setBookmarkLoading(true);
     try {
       if (isBookmarked) {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'DELETE',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
       } else {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'POST',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
       }
@@ -151,9 +147,8 @@ export default function ShowDetailsPage() {
     if (!isBookmarked && event_id) {
       setBookmarkLoading(true);
       try {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'POST',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
         setIsBookmarked(true);

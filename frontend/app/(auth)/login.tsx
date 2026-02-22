@@ -3,8 +3,8 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
   Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3000";
+import { apiFetch } from "@/api/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,40 +21,63 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+      const data = await apiFetch<{ jwt?: string; success?: boolean; error?: string }>(
+        'api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: email.trim(), password }),
         },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
+      );
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || data?.success === false || data?.error) {
-        const msg =
-          data?.error ||
-          (res.status === 401 ? "Invalid email or password." : "Login failed.");
-        Alert.alert("Login failed", msg);
+      if (!data || data?.success === false || data?.error) {
+        const msg = data?.error || 'Login failed.';
+        Alert.alert('Login failed', msg);
         return;
       }
 
       if (!data?.jwt) {
-        Alert.alert("Login failed", "No token returned from server.");
+        Alert.alert('Login failed', 'No token returned from server.');
         return;
       }
 
-      router.replace("/");
+      await AsyncStorage.setItem('authToken', data.jwt);
+      router.replace('/');
     } catch (e) {
-      Alert.alert("Network error", "Could not reach the server. Try again.");
+      Alert.alert('Network error', 'Could not reach the server. Try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const devLogin = async () => {
+    try {
+      const data = await apiFetch<{ jwt?: string; success?: boolean; error?: string }>(
+        'api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: "johnsharrycasual@gmail.com", password: "Test1234" }),
+        },
+      );
+
+      if (!data || data?.success === false || data?.error) {
+        const msg = data?.error || 'Login failed.';
+        Alert.alert('Login failed', msg);
+        return;
+      }
+
+      if (!data?.jwt) {
+        Alert.alert('Login failed', 'No token returned from server.');
+        return;
+      }
+
+      await AsyncStorage.setItem('authToken', data.jwt);
+      router.replace('/');
+    } catch (e) {
+      Alert.alert('Network error', 'Could not reach the server. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -118,7 +141,7 @@ export default function LoginScreen() {
           {__DEV__ && (
             <Pressable
               style={[styles.primaryBtn, { marginTop: 12, opacity: 0.85 }]}
-              onPress={() => router.replace("/")}
+              onPress={() => devLogin()}
             >
               <Text style={styles.primaryBtnText}>Dev: Skip Login</Text>
             </Pressable>

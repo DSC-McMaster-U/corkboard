@@ -25,12 +25,9 @@ export const bookmarkService = {
     removeBookmark: async (userId: string, eventId: string) => {
         // Convert eventId to string to handle numeric IDs from frontend
         const eventIdStr = String(eventId);
-        
-        console.log('removeBookmark - userId:', userId, 'eventId:', eventId, 'eventIdStr:', eventIdStr);
-        
+                
         // check if bookmark exists
         const { data: existing, error: existsError } = await db.bookmarks.exists(userId, eventIdStr);
-        console.log('exists result - data:', existing, 'error:', existsError);
         
         if (!existing) {
             throw new Error("Bookmark not found");

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Text, TouchableOpacity, View, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { apiFetch } from '@/api/api';
+import { apiFetch, apiFetchAuth } from '@/api/api';
 import { useFocusEffect } from 'expo-router';
 import { EventData } from '@/constants/types';
 
@@ -140,11 +140,8 @@ export function Bookmarks() {
         setRemovingIds((prev) => new Set(prev).add(eventId));
 
         try {
-            await apiFetch('api/bookmarks', {
+            await apiFetchAuth('api/bookmarks', {
                 method: 'DELETE',
-                headers: {
-                    Authorization: 'TESTING_BYPASS',
-                },
                 body: JSON.stringify({ eventId }),
             });
 
@@ -178,11 +175,7 @@ export function Bookmarks() {
                     setLoading(true);
                     setError(null);
 
-                    const response = await apiFetch<ApiBookmarksResponse>('api/bookmarks', {
-                        headers: {
-                            Authorization: 'TESTING_BYPASS',
-                        },
-                    });
+                    const response = await apiFetchAuth<ApiBookmarksResponse>('api/bookmarks');
 
                     // Extract events from bookmarks response
                     const eventsMap = new Map<string, EventData>();
