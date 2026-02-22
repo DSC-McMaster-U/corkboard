@@ -10,10 +10,12 @@ import {
 import dotenv from "dotenv";
 import { get } from "http";
 import { supabaseStorage } from "./supabaseStorage.js";
-import { NODE_ENV } from "../app.js";
+import { parseEnv } from "../utils/parser.js";
 
 // Load environment variables
 dotenv.config();
+
+const NODE_ENV = parseEnv(process.env.NODE_ENV);
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey =
