@@ -14,7 +14,7 @@ export default function ExploreScreen() {
   // fetching trending songs
 
   return (
-    <SafeAreaView className='bg-background flex-1' edges={['top', 'left', 'right']}>
+    <SafeAreaView className='bg-background flex-1' edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#000000" />
       <View className='flex-1 flex-col px-4 py-4'>
 
@@ -31,9 +31,21 @@ export default function ExploreScreen() {
             <Bookmarks />
           </View>
 
-          {/* Explore shows section*/}
+          {/* Explore shows section - personalized based on bookmarks and favourites*/}
           <View className='mb-8'>
-            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Explore shows in Hamilton</Text>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events For You</Text>
+            <ExploreShows />
+          </View>
+
+          {/* Explore shows from favourite venues*/}
+          <View className='mb-8'>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events from your favourite venues</Text>
+            <ExploreShows />
+          </View>
+
+          {/* Events with favourite genres*/}
+          <View className='mb-8'>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite genres</Text>
             <ExploreShows />
           </View>
 

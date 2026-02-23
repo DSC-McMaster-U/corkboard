@@ -23,14 +23,21 @@ export const bookmarkService = {
         return data;
     },
     removeBookmark: async (userId: string, eventId: string) => {
+        // Convert eventId to string to handle numeric IDs from frontend
+        const eventIdStr = String(eventId);
+                
         // check if bookmark exists
-        const { data: existing } = await db.bookmarks.exists(userId, eventId);
+        const { data: existing, error: existsError } = await db.bookmarks.exists(userId, eventIdStr);
+        
         if (!existing) {
             throw new Error("Bookmark not found");
         }
 
-        const { error } = await db.bookmarks.delete(userId, eventId);
-        if (error) throw error;
+        const { error } = await db.bookmarks.delete(userId, eventIdStr);
+        if (error) {
+            console.error('delete error:', error);
+            throw error;
+        }
         return true;
     },
 };

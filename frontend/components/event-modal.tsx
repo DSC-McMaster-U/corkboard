@@ -2,7 +2,6 @@ import { Modal, View, Text, TouchableOpacity, Linking, Image, StyleSheet, Scroll
 import { FontAwesome } from "@expo/vector-icons";
 import { EventData } from "@/constants/types";
 import { formatEventDateTime, formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
-import { getImageUrl } from "@/api/api";
 import { Colors } from "@/constants/theme";
 import { router } from 'expo-router';
 
@@ -19,7 +18,7 @@ const PLACEHOLDER_IMAGE =
 export default function EventModal({ visible, onClose, data }: EventModalProps) {
   if (!data) return null;
 
-  const imageUri = data.image ? getImageUrl(data.image) : PLACEHOLDER_IMAGE;
+  const imageUri = data.image || PLACEHOLDER_IMAGE;
   const venue = data.venues ? data.venues : { name: "Unspecified venue", address: "", venue_type: "" };
   const genresText = data.event_genres && data.event_genres.length > 0
     ? data.event_genres.map((eg) => eg.genres.name).join(", ")

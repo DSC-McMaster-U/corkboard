@@ -4,8 +4,10 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { EventData, EventList } from '@/constants/types';
-import { apiFetch, getImageUrl } from '@/api/api';
+import { apiFetch } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
 
 export default function VenuePage() {
   const { 
@@ -168,9 +170,10 @@ export default function VenuePage() {
   const processedVenueType = normalizedVenueType
     ? normalizedVenueType.charAt(0).toUpperCase() + normalizedVenueType.slice(1)
     : "TBD";
-
-  const imageUri = image ? getImageUrl(image as string) : null;
+   
+  const imgNormalized = Array.isArray(image) ? image[0] : image;  
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+  const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
 
   return (
     <>
@@ -184,7 +187,7 @@ export default function VenuePage() {
       <View className='bg-accent'>
         <View className='relative h-[42vh]'>
           <Image
-            source={{ uri: imageUri || PLACEHOLDER_IMAGE }}
+            source={{ uri: imageUri }}
             className='w-full h-full'
             resizeMode='cover'
           />
@@ -266,6 +269,34 @@ export default function VenuePage() {
             </View>
           )}
 
+          {/* Map view for location */}
+          {latitude && longitude && (
+            <View className="px-4 py-4">
+              <Text className="text-foreground text-2xl font-bold mb-3">Location</Text>
+              <View className="overflow-hidden rounded-2xl h-44">
+                <MapView
+                  style={{ flex: 1 }}
+                  provider={PROVIDER_GOOGLE} 
+                  initialRegion={{
+                    latitude: Number(latitude),
+                    longitude: Number(longitude),
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: Number(latitude),
+                      longitude: Number(longitude),
+                    }}
+                    title={venueName as string}
+                    description={address as string}
+                  />
+                </MapView>
+              </View>
+            </View>
+          )}
+
           {/* Upcoming events at venue */}
           {shows && 
             ( loading ? 
@@ -319,21 +350,29 @@ interface ShowCardProps {
 function ShowCard({ show }: ShowCardProps) {
   const PLACEHOLDER_IMAGE =
     "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imageUri = show.image ? getImageUrl(show.image) : PLACEHOLDER_IMAGE;
+  const imageUri = show.image || PLACEHOLDER_IMAGE;
 
   const handlePress = () => {
     router.push({
       pathname: "/shows/[showName]",
       params: {
         showName: show.title,
-        artist: show.artist,
-        description: show.description,
-        start_time: show.start_time,
-        cost: show.cost,
-        image: show.image,
-        venue_name: show.venues?.name,
-        venue_address: show.venues?.address,
-        source_url: show.source_url,
+          description: show.description || '',
+          start_time: show.start_time,
+          cost: show.cost?.toString() || '',
+          artist: show.artist || '',
+          image: show.image || '',
+          venue_name: show.venues?.name || '',
+          venue_id: show.venues?.id || '',
+          venue_address: show.venues?.address || '',
+          venue_latitude: show.venues?.latitude?.toString() || '',
+          venue_longtidue: show.venues?.longitude?.toString() || '',
+          venue_type: show.venues?.venue_type || '',
+          source_url: show.source_url || '',
+          genres: JSON.stringify(
+              (show.event_genres || []).map((eg) => eg.genres?.name || '')
+          ),
+          event_id: show.id.toString(),
       },
     });
   };

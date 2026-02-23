@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { router } from 'expo-router';
 import { EventData, EventList } from '@/constants/types';
-import { apiFetch, getImageUrl } from '@/api/api';
+import { apiFetch } from '@/api/api';
 
 interface ShowCardProps {
   show: EventData;
@@ -10,7 +10,7 @@ interface ShowCardProps {
 
 function ShowCard({ show }: ShowCardProps) {
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imageUri = show.image ? getImageUrl(show.image) : PLACEHOLDER_IMAGE;
+  const imageUri = show.image || PLACEHOLDER_IMAGE;
 
   const handlePress = () => {
     // Extract genre names from the event_genres array

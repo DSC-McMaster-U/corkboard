@@ -77,12 +77,15 @@ router.delete(
             return;
         }
 
+        console.log('DELETE bookmark - user:', user.id, 'eventId:', eventId, 'eventId type:', typeof eventId);
+
         bookmarkService
             .removeBookmark(String(user.id), eventId as string)
             .then(() => {
                 res.status(200).json({ success: true });
             })
             .catch((err) => {
+                console.error('Error removing bookmark:', err);
                 res.status(500).json({ error: err });
             });
     }

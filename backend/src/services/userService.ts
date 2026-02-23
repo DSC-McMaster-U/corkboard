@@ -5,8 +5,8 @@ export const userService = {
     signUpUser: async (email: string, password: string) => {
         const { data: email_data, error: _ } = await db.users.getByEmail(email);
 
-        if (email_data["id"] != undefined) {
-            throw "Email already in use";
+        if (email_data != undefined) {
+            throw { message: "Email already in use" };
         }
 
         const { data, error } = await db.auth.signUp(email, password);
@@ -45,4 +45,9 @@ export const userService = {
         if (error) throw error;
         return data;
     },
+    getUserByIDWithFavorites: async (userId: string) => {
+        const { data, error } = await db.users.getByIdWithFavorites(userId);
+        if (error) throw error;
+        return data;
+    }
 };
