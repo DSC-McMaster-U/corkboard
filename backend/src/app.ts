@@ -47,7 +47,9 @@ const PORT = process.env.PORT || 3000;
 //const __dirname = path.dirname(__filename); // get the directory name of the current module
 
 // Middleware
-if (NODE_ENV == "test") {
+
+// Enable CORS in development and test environments
+if (NODE_ENV === "test" || NODE_ENV === "development") {
     app.use(cors());
 }
 
