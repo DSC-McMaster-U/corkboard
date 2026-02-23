@@ -181,6 +181,7 @@ export default function App() {
           setForm={setForm}
           dirty={dirty}
           onCopyDraft={copyDraftJson}
+          refresh={refresh}
         />
       </div>
     </div>

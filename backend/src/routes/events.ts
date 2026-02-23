@@ -126,6 +126,50 @@ router.post("/", async (req: Request, res: Response) => {
         });
 });
 
+router.post("/updateEvent", async (req: Request, res: Response) => {
+    req.body = req.body ?? {};
+
+    const {
+        id = undefined,
+        title = undefined,
+        description = undefined,
+        venue_id = undefined,
+        start_time = undefined,
+        status = undefined,
+        source_type = undefined,
+        source_url = undefined,
+        image = undefined,
+        artist_id = undefined,
+    } = req.body;
+    
+    const cost = parseFloatOr(req.body.cost, 0);
+
+    if (id == undefined || id === "") {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    eventService.updateEventByID(id, {
+        title,
+        venue_id,
+        start_time,
+        description,
+        cost,
+        status,
+        source_type,
+        source_url,
+        ingestion_status: "success",
+        artist_id,
+        image,
+    })
+    .then((result) => {
+        res.status(200).json({ id: result.id, success: true });
+    })
+    .catch((err) => {
+        res.status(500).json({ success: false, error: err });
+    });
+});
+
 // Add more event routes here (POST, PUT, DELETE, ...)
 
 export default router;

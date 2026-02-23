@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { updateEvent } from "../corkboardApi";
+
 function toDateTimeLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -7,8 +10,26 @@ function toDateTimeLocal(iso) {
   )}:${pad(d.getMinutes())}`;
 }
 
-export default function EventEditor({ event, form, setForm, dirty, onCopyDraft }) {
+export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, refresh }) {
+  const [loading, setLoading] = useState(false);
   if (!event) return <div>Select an event</div>;
+
+  const onSave = async () => {
+    setLoading(true);
+    try {
+      const result = await updateEvent(form, event.id);
+      if (result.success) {
+        console.log("Event updated successfully");
+        if (refresh) refresh();
+      } else {
+        console.error("Failed to update event:", result.error);
+      }
+    } catch (error) {
+      console.error("Error updating event:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -90,11 +111,12 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft }
 
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <button
-            disabled
-            title="Saving not implemented yet"
-            style={{ padding: "10px 14px", opacity: 0.6, cursor: "not-allowed" }}
+            disabled={loading || !dirty}
+            onClick={onSave}
+            title="Save changes to the server"
+            style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer" }}
           >
-            Save (coming soon)
+            Save
           </button>
 
           <button onClick={onCopyDraft} style={{ padding: "10px 14px" }}>
