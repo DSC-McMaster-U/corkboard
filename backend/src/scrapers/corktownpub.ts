@@ -89,7 +89,7 @@ export async function scrapeWebsite(url: string) {
       //const cost = 10.00;
       const source_url = url
 
-      results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: title, image: "/images/events/corktown-pub.jpg" });
+      results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: title, image: "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/corktown-pub.jpg" });
     });
 
     return results;

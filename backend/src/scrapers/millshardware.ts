@@ -155,7 +155,7 @@ export async function scrapeWebsite(url: string) {
         const artist = withLines.length ? `${title} ${withLines.join(" ")}` : title;
 
         // image - use a default image for now
-        const image = "/images/events/millshardware.jpg";
+        const image = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/millshardware.jpg";
         
         results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: artist, image: image, cost: cost });
     }
