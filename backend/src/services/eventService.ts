@@ -135,4 +135,11 @@ export const eventService = {
         if (error) throw error;
         return data;
     },
+    deleteEventByID: async (
+        id: string
+    ) => {
+        const { data, error } = await db.events.deleteById(id);
+        if (error) throw error;
+        return data;
+    }
 };

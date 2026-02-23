@@ -39,8 +39,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     const radius = parseIntOr(req.query.radius as string | undefined, 10);
 
-    const includeArchived =
-        req.query.include_archived === "true";
+    const includeArchived = req.query.includeArchived === "true";
 
     eventService
         .getAllEvents(
@@ -164,6 +163,68 @@ router.post("/updateEvent", async (req: Request, res: Response) => {
     })
     .then((result) => {
         res.status(200).json({ id: result.id, success: true });
+    })
+    .catch((err) => {
+        res.status(500).json({ success: false, error: err });
+    });
+});
+
+router.delete("/deleteEvent", async (req: Request, res: Response) => {
+    const id = req.body.id as string | undefined;
+
+    if (id == undefined || id === "") {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    eventService.deleteEventByID(id)
+    .then(() => {
+        res.status(200).json({ success: true });
+    })
+    .catch((err) => {
+        res.status(500).json({ success: false, error: err });
+    });
+});
+
+router.post("/archiveEvent", async (req: Request, res: Response) => {
+    const id = req.body.id as string | undefined;
+    
+    if (id == undefined || id === "") {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    eventService.archiveEvent(id)
+    .then(() => {
+        res.status(200).json({ success: true });
+    })
+    .catch((err) => {
+        res.status(500).json({ success: false, error: err });
+    });
+});
+
+router.post("/unarchiveEvent", async (req: Request, res: Response) => {
+    const id = req.body.id as string | undefined;
+    
+    if (id == undefined || id === "") {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    eventService.unarchiveEvent(id)
+    .then(() => {
+        res.status(200).json({ success: true });
+    })
+    .catch((err) => {
+        res.status(500).json({ success: false, error: err });
+    });
+});
+
+
+router.post("/archivePastEvents", async (req: Request, res: Response) => {
+    eventService.archivePastEvents()
+    .then(() => {
+        res.status(200).json({ success: true });
     })
     .catch((err) => {
         res.status(500).json({ success: false, error: err });

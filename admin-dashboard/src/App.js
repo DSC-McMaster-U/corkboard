@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getEvents } from "./corkboardApi";
+import { getEvents, archivePastEvents } from "./corkboardApi";
 import EventList from "./components/EventList";
 import EventEditor from "./components/EventEditor";
 
@@ -49,6 +49,8 @@ export default function App() {
   const [err, setErr] = useState(null);
   const [msg, setMsg] = useState(null);
 
+  const [includeArchived, setIncludeArchived] = useState(false);
+
   const filteredSortedEvents = useMemo(() => {
     const q = normalize(search);
     const list = [...events];
@@ -71,7 +73,7 @@ export default function App() {
     }
     const stillExists = filteredSortedEvents.some((e) => e.id === selectedId);
     if (!stillExists) setSelectedId(filteredSortedEvents[0].id);
-  }, [filteredSortedEvents, selectedId]);
+  }, [filteredSortedEvents, selectedId, includeArchived]);
 
   const dirty = useMemo(() => {
     if (!selected) return false;
@@ -92,7 +94,7 @@ export default function App() {
     setErr(null);
     setMsg(null);
     try {
-      const list = await getEvents(200);
+      const list = await getEvents(200, includeArchived);
       setEvents(list);
       // selection will be handled by the "keep selection valid" effect
       setMsg(`Loaded ${list.length} events`);
@@ -138,14 +140,48 @@ export default function App() {
     setMsg("Copied draft JSON to clipboard.");
   }
 
+  const handleArchivePastEvents = async () => {
+    setLoading(true);
+    try {
+      const result = await archivePastEvents();
+      if (result.success) {
+        console.log("Past events archived successfully");
+        refresh();
+      } else {
+        console.error("Failed to archive past events:", result.error);
+      } 
+    } catch (error) {
+      console.error("Error archiving past events:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", height: "100vh" }}>
       <div style={{ borderRight: "1px solid #ddd", padding: 12, overflow: "auto" }}>
         <h2 style={{ marginTop: 0 }}>Corkboard Admin (Read-only)</h2>
 
-        <button onClick={refresh} disabled={loading} style={{ marginBottom: 12 }}>
-          {loading ? "Refreshing..." : "Refresh events"}
-        </button>
+        <div style={{ marginBottom: 12, fontSize: 12 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              disabled={loading}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+            />{" "}
+            Include archived
+          </label>
+        </div>
+
+        <div style={{ flexDirection: "row", display: "flex", gap: 8, marginBottom: 12 }}>
+          <button onClick={refresh} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh events"}
+          </button>
+          <button onClick={handleArchivePastEvents} disabled={loading}>
+            {loading ? "Archiving..." : "Archive past events"}
+          </button>
+        </div>
 
         <input
           value={search}

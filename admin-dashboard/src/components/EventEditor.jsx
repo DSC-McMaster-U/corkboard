@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateEvent } from "../corkboardApi";
+import { deleteEvent, updateEvent, archiveEvent, unarchiveEvent } from "../corkboardApi";
 
 function toDateTimeLocal(iso) {
   if (!iso) return "";
@@ -30,6 +30,44 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
       setLoading(false);
     }
   };
+
+  const toggleArchive = async () => {    
+    setLoading(true);
+    try {
+      const result = event.archived ? await unarchiveEvent(event.id) : await archiveEvent(event.id);
+      if (result.success) {
+        console.log(`Event ${event.archived ? "unarchived" : "archived"} successfully`);
+        if (refresh) refresh();
+      } else {
+        console.error(`Failed to ${event.archived ? "unarchive" : "archive"} event:`, result.error);
+      }
+    } catch (error) {
+      console.error(`Error ${event.archived ? "unarchiving" : "archiving"} event:`, error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await deleteEvent(event.id);
+      if (result.success) {
+        console.log("Event deleted successfully");
+        if (refresh) refresh();
+      } else {
+        console.error("Failed to delete event:", result.error);
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
@@ -109,7 +147,9 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
           />
         </label>
 
+        {/* buttons */}
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {/* save changes button */}
           <button
             disabled={loading || !dirty}
             onClick={onSave}
@@ -119,8 +159,22 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
             Save
           </button>
 
+          {/* copy draft json button */}
           <button onClick={onCopyDraft} style={{ padding: "10px 14px" }}>
             Copy draft JSON
+          </button>
+
+          {/* toggle archive button */}
+          <button onClick={toggleArchive} style={{ padding: "10px 14px" }}>
+            {event.archived ? "Unarchive" : "Archive"}
+          </button>
+          
+          {/* delete button */}
+          <button 
+            onClick={() => handleDeleteEvent()}
+            style={{ padding: "10px 14px", backgroundColor: "crimson", color: "white", borderRadius: 8 }}
+          >
+            Delete
           </button>
         </div>
 
