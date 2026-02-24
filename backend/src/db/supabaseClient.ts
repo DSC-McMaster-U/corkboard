@@ -94,6 +94,9 @@ export const db = {
                 );
             }
 
+            // filter for published events by default
+            query = query.eq("status", "published").eq("ingestion_status", "success");
+
             return query.limit(limit);
         },
         add: (
@@ -239,6 +242,70 @@ export const db = {
 
         deleteForVenue: (venueId: string) =>
             supabase.from("events").delete().eq("venue_id", venueId),
+        
+        getUserUploadedDrafts: (
+            limit: number,
+            min_start_time: string,
+            max_start_time: string,
+            min_cost: number,
+            max_cost: number,
+        ) => {
+            let query = supabase
+                .from("events")
+                .select(
+                    `
+                    *,
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude
+                    ),
+                    event_genres (
+                        genre_id,
+                        genres (
+                            id,
+                            name
+                        )
+                    ),
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    ),
+                    users (
+                        id,
+                        email,
+                        name,
+                        created_at,
+                        username,
+                        profile_picture,
+                        bio
+                    )
+                `,
+                )
+                .gte("start_time", min_start_time)
+                .lte("start_time", max_start_time);
+
+            // handle NULL costs: only filter by cost if user specified a range
+            const isDefaultCostRange =
+                min_cost === 0 && max_cost === Number.MAX_VALUE;
+            if (!isDefaultCostRange) {
+                // apply cost range filter
+                // billy's note: NULL costs will be excluded when filtering (standard behavior)
+                query = query.or(
+                    `cost.is.null,and(cost.gte.${min_cost},cost.lte.${max_cost}))`,
+                );
+            }
+
+            // ONLY user uploaded events
+            query = query.eq("status", "draft"); //.eq("source_type", "user")  change after db migration
+
+            return query.limit(limit);
+        },
     },
     // artists: {
     //     getAll: (limit = 50) =>

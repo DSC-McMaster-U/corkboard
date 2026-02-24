@@ -10,7 +10,7 @@ export default function EventList({ events, selectedId, onSelect }) {
             padding: 10,
             border: "1px solid #ddd",
             borderRadius: 8,
-            background: e.id === selectedId ? "#f3f3f3" : "white",
+            background: e.archived ? "#f3f3f3" : selectedId === e.id ? "#e0e0e0" : "white",
             cursor: "pointer",
           }}
         >

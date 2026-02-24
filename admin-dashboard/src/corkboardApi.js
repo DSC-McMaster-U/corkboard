@@ -1,7 +1,8 @@
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
-export async function getEvents(limit = 200, includeArchived = false) {
-  const res = await fetch(`${API_BASE}/api/events?limit=${limit}&includeArchived=${includeArchived}`, {
+export async function getEvents(limit = 200, includeArchived = false, hideOld = false) {
+  const now = new Date();
+  const res = await fetch(`${API_BASE}/api/events?limit=${limit}&includeArchived=${includeArchived}${hideOld ? "&min_start_time=" + now.toISOString() : ""}`, {
     headers: { Accept: "application/json" },
   });
   const data = await res.json();
@@ -80,4 +81,13 @@ export async function archivePastEvents() {
   const data = await res.json();
   if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
   return data;
+}
+
+export async function getUserDrafts(limit = 200) {
+  const res = await fetch(`${API_BASE}/api/events/userDrafts?limit=${limit}`, {
+    headers: { Accept: "application/json" },
+  });
+  const data = await res.json();
+  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  return data.events || [];
 }
