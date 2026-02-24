@@ -49,7 +49,25 @@ export default function DraftEditor({ user, event, form, setForm, dirty, onCopyD
   }
 
   const rejectDraft = async () => {
-    console.log("rejected")
+    setLoading(true);
+    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await deleteEvent(event.id);
+      if (result.success) {
+        console.log("Event deleted successfully");
+        if (refresh) refresh();
+      } else {
+        console.error("Failed to delete event:", result.error);
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
