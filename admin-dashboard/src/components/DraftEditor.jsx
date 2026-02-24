@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteEvent, updateEvent, archiveEvent, unarchiveEvent } from "../corkboardApi";
+import { deleteEvent, updateEvent } from "../corkboardApi";
 
 function toDateTimeLocal(iso) {
   if (!iso) return "";
@@ -10,7 +10,7 @@ function toDateTimeLocal(iso) {
   )}:${pad(d.getMinutes())}`;
 }
 
-export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, refresh }) {
+export default function DraftEditor({ user, event, form, setForm, dirty, onCopyDraft, refresh }) {
   const [loading, setLoading] = useState(false);
   if (!event) return <div>Select an event</div>;
 
@@ -31,24 +31,25 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
     }
   };
 
-  const toggleArchive = async () => {    
+  const acceptDraft = async () => {
     setLoading(true);
     try {
-      const result = event.archived ? await unarchiveEvent(event.id) : await archiveEvent(event.id);
+      const result = await updateEvent({ ...form, status: "published" }, event.id);
       if (result.success) {
-        console.log(`Event ${event.archived ? "unarchived" : "archived"} successfully`);
+        console.log("Draft published successfully");
         if (refresh) refresh();
       } else {
-        console.error(`Failed to ${event.archived ? "unarchive" : "archive"} event:`, result.error);
+        console.error("Failed to publish draft:", result.error);
       }
     } catch (error) {
-      console.error(`Error ${event.archived ? "unarchiving" : "archiving"} event:`, error);
+      console.error("Error publishing draft:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  const handleDeleteEvent = async () => {
+  const rejectDraft = async () => {
+    setLoading(true);
     if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
       return;
     }
@@ -78,11 +79,6 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
       </div>
 
       <div style={{ display: "grid", gap: 12, maxWidth: 720 }}>
-        <label>
-          <div>Image</div>
-          <img src={event.image} style={{ width: "100%", objectFit: "cover" }} />
-        </label>
-
         <label>
           <div>Title</div>
           <input
@@ -145,8 +141,9 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
         </label>
 
         <label>
-          <div>Source URL</div>
+          <div>User ID</div>
           <input
+            disabled={true}
             value={form.source_url}
             onChange={(e) => setForm((f) => ({ ...f, source_url: e.target.value }))}
             style={{ width: "100%", padding: 8 }}
@@ -165,22 +162,25 @@ export default function EventEditor({ event, form, setForm, dirty, onCopyDraft, 
             Save
           </button>
 
+          <button 
+            disabled={loading}
+            onClick={acceptDraft}
+            style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", background: "azure"}}
+          >
+            Publish
+          </button>
+
+          <button 
+            disabled={loading}
+            onClick={rejectDraft}
+            style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", background: "mistyrose" }}
+          >
+            Reject
+          </button>
+
           {/* copy draft json button */}
           <button onClick={onCopyDraft} style={{ padding: "10px 14px" }}>
             Copy draft JSON
-          </button>
-
-          {/* toggle archive button */}
-          <button onClick={toggleArchive} style={{ padding: "10px 14px" }}>
-            {event.archived ? "Unarchive" : "Archive"}
-          </button>
-          
-          {/* delete button */}
-          <button 
-            onClick={() => handleDeleteEvent()}
-            style={{ padding: "10px 14px", backgroundColor: "crimson", color: "white", borderRadius: 8 }}
-          >
-            Delete
           </button>
         </div>
 

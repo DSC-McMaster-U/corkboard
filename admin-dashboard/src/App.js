@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { getEvents, archivePastEvents } from "./corkboardApi";
+import { getEvents, archivePastEvents, getUserDrafts } from "./corkboardApi";
 import EventList from "./components/EventList";
 import EventEditor from "./components/EventEditor";
+import DraftEditor from "./components/DraftEditor";
 
 function toDateTimeLocal(iso) {
   if (!iso) return "";
@@ -50,6 +51,8 @@ export default function App() {
   const [msg, setMsg] = useState(null);
 
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [viewDrafts, setViewDrafts] = useState(false);
+  const [hideOld, setHideOld] = useState(true);
 
   const filteredSortedEvents = useMemo(() => {
     const q = normalize(search);
@@ -73,7 +76,7 @@ export default function App() {
     }
     const stillExists = filteredSortedEvents.some((e) => e.id === selectedId);
     if (!stillExists) setSelectedId(filteredSortedEvents[0].id);
-  }, [filteredSortedEvents, selectedId, includeArchived]);
+  }, [filteredSortedEvents, selectedId, includeArchived, viewDrafts]);
 
   const dirty = useMemo(() => {
     if (!selected) return false;
@@ -94,10 +97,15 @@ export default function App() {
     setErr(null);
     setMsg(null);
     try {
-      const list = await getEvents(200, includeArchived);
-      setEvents(list);
-      // selection will be handled by the "keep selection valid" effect
-      setMsg(`Loaded ${list.length} events`);
+      if (viewDrafts) {
+        const drafts = await getUserDrafts();
+        setEvents(drafts);
+        setMsg(`Loaded ${drafts.length} drafts`);
+      } else {
+        const list = await getEvents(200, includeArchived, hideOld);
+        setEvents(list);
+        setMsg(`Loaded ${list.length} events`);
+      }
     } catch (e) {
       setErr(String(e.message || e));
     } finally {
@@ -162,15 +170,33 @@ export default function App() {
       <div style={{ borderRight: "1px solid #ddd", padding: 12, overflow: "auto" }}>
         <h2 style={{ marginTop: 0 }}>Corkboard Admin (Read-only)</h2>
 
-        <div style={{ marginBottom: 12, fontSize: 12 }}>
+        <div style={{ display: "flex", flexDirection: "row", gap: 12, marginBottom: 12, fontSize: 12 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={viewDrafts}
+              disabled={loading}
+              onChange={(e) => setViewDrafts  (e.target.checked)}
+            />{" "}
+            View Drafts
+          </label>
           <label>
             <input
               type="checkbox"
               checked={includeArchived}
-              disabled={loading}
+              disabled={loading || viewDrafts}
               onChange={(e) => setIncludeArchived(e.target.checked)}
             />{" "}
             Include archived
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={hideOld}
+              disabled={loading || viewDrafts}
+              onChange={(e) => setHideOld(e.target.checked)}
+            />{" "}
+            Hide Old
           </label>
         </div>
 
@@ -178,7 +204,7 @@ export default function App() {
           <button onClick={refresh} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh events"}
           </button>
-          <button onClick={handleArchivePastEvents} disabled={loading}>
+          <button onClick={handleArchivePastEvents} disabled={loading || viewDrafts}>
             {loading ? "Archiving..." : "Archive past events"}
           </button>
         </div>
@@ -211,14 +237,24 @@ export default function App() {
       </div>
 
       <div style={{ padding: 16, overflow: "auto" }}>
-        <EventEditor
-          event={selected}
-          form={form}
-          setForm={setForm}
-          dirty={dirty}
-          onCopyDraft={copyDraftJson}
-          refresh={refresh}
-        />
+        {viewDrafts ? 
+          (<DraftEditor
+            event={selected}
+            form={form}
+            setForm={setForm}
+            dirty={dirty}
+            onCopyDraft={copyDraftJson}
+            refresh={refresh}
+          />) :
+          (<EventEditor
+            event={selected}
+            form={form}
+            setForm={setForm}
+            dirty={dirty}
+            onCopyDraft={copyDraftJson}
+            refresh={refresh}
+          />)
+        }
       </div>
     </div>
   );
