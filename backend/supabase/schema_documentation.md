@@ -34,6 +34,7 @@
 - `'scraping'` - Web scraping (HTML parsing)
 - `'rss'` - RSS feed
 - `'ics'` - iCalendar (.ics) file
+- `'user'` - Created by a user
 - `'other'` - Other methods
 
 ### `ingestion_status_enum`
