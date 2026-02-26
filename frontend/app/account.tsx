@@ -162,6 +162,7 @@ export default function AccountPage() {
           method: 'GET',
         });
         setUserData(res.user);
+        console.log("Fetched user data: ", res.user);
       } catch (e) {
         console.error("Failed to fetch user data:", e);
       } finally {
@@ -224,7 +225,7 @@ export default function AccountPage() {
           <TagInput placeholder="Search artists" endpoint={"/api/genres"} />
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder="Search venues" endpoint={"/api/venues"} />
+          <TagInput placeholder={userData?.user_favorite_venues.map(v => v.name).join(", ") || "Search venues"} endpoint={"/api/venues"} />
         </View>
 
         {/* Logout Button */}

@@ -145,4 +145,132 @@ router.get("/",
         });
 }); 
 
+// add favorite genre
+// POST /api/users/addGenre - adds genre to user's favorites
+router.post(
+    "/addGenre",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        let user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { genreId = undefined } = req.body;
+
+        if (genreId == undefined || genreId === "") {
+            res.status(400).json({ error: "Missing genre ID" });
+            return;
+        }
+
+        userService
+            .addFavoriteGenre(String(user.id), genreId as string)
+            .then(() => {
+                res.status(200).json({ success: true });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ error: err.message });
+            });
+        
+    }
+);
+
+// remove favourite genre
+// DELETE  /api/users/removeGenre - removes genre from user's favorites
+router.delete(
+    "/removeGenre",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        let user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { genreId = undefined } = req.body;
+
+        if (genreId == undefined || genreId === "") {
+            res.status(400).json({ error: "Missing genre ID" });
+            return;
+        }
+
+        userService
+            .removeFavoriteGenre(String(user.id), genreId as string)
+            .then(() => {
+                res.status(200).json({ success: true });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ error: err.message });
+            });
+        
+    }
+);
+
+// add favourite venue
+// POST /api/users/addVenue - adds venue to user's favorites
+router.post(
+    "/addVenue",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        let user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { venueId = undefined } = req.body;
+
+        if (venueId == undefined || venueId === "") {
+            res.status(400).json({ error: "Missing venue ID" });
+            return;
+        }
+
+        userService
+            .addFavoriteVenue(String(user.id), venueId as string)
+            .then(() => {
+                res.status(200).json({ success: true });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ error: err.message });
+            });
+    }
+);
+
+// remove favourite venue
+// DELETE  /api/users/removeVenue - removes venue from user's favorites
+router.delete(
+    "/removeVenue",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        let user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { venueId = undefined } = req.body;
+
+        if (venueId == undefined || venueId === "") {
+            res.status(400).json({ error: "Missing venue ID" });
+            return;
+        }
+
+        userService
+            .removeFavoriteVenue(String(user.id), venueId as string)
+            .then(() => {
+                res.status(200).json({ success: true });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ error: err.message });
+            });
+        
+    }
+);
+
+
 export default router;
