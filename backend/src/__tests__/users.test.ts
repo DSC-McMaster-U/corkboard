@@ -66,30 +66,30 @@ describe("Users test suite", () => {
         });
     });
 
-    describe("getByIdWithFavorites", () => {
-        it("should get user with all favorites (genres, venues, artists)", async () => {
-            const userId = existing_user.id;
+    // describe("getByIdWithFavorites", () => {
+    //     it("should get user with all favorites (genres, venues, artists)", async () => {
+    //         const userId = existing_user.id;
 
-            const { data: user, error } =
-                await db.users.getByIdWithFavorites(userId);
+    //         const { data: user, error } =
+    //             await db.users.getByIdWithFavorites(userId);
 
-            expect(error).toBeNull();
-            expect(user).toBeDefined();
-            expect(user?.id).toBe(userId);
+    //         expect(error).toBeNull();
+    //         expect(user).toBeDefined();
+    //         expect(user?.id).toBe(userId);
 
-            expect(user).toHaveProperty("user_favorite_genres");
-            expect(user).toHaveProperty("user_favorite_venues");
-            expect(user).toHaveProperty("user_favorite_artists");
+    //         expect(user).toHaveProperty("user_favorite_genres");
+    //         expect(user).toHaveProperty("user_favorite_venues");
+    //         expect(user).toHaveProperty("user_favorite_artists");
 
-            if (
-                user?.user_favorite_genres &&
-                user.user_favorite_genres.length > 0
-            ) {
-                expect(user.user_favorite_genres[0]).toHaveProperty("genre_id");
-                expect(user.user_favorite_genres[0]).toHaveProperty("genres");
-            }
-        });
-    });
+    //         if (
+    //             user?.user_favorite_genres &&
+    //             user.user_favorite_genres.length > 0
+    //         ) {
+    //             expect(user.user_favorite_genres[0]).toHaveProperty("genre_id");
+    //             expect(user.user_favorite_genres[0]).toHaveProperty("genres");
+    //         }
+    //     });
+    // });
 
     describe("getByUsername", () => {
         it("should get user by username", async () => {

@@ -52,9 +52,12 @@ export type UserData = {
   username: string | undefined;
   profile_picture: string | undefined;
   bio: string | undefined;
-  user_favorite_genres: Array<GenreData>;
-  user_favorite_venues: Array<VenueData>;
-  user_favorite_artists: Array<{
+  genres: Array<{
+    id: string,
+    name: string
+  }>;
+  venues: Array<VenueData>;
+  artists: Array<{
     artist_id: string;
     artists: {
       id: string;

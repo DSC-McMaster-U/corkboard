@@ -219,13 +219,13 @@ export default function AccountPage() {
           <Input placeholder={loading ? "Loading email..." : userData?.email || "Enter email address"} />
 
           <Label text="Favourite Genres" />
-          <TagInput placeholder="Search genre" endpoint={"/api/genres"} />
+          <TagInput placeholder={userData?.genres.map(g => g.name).join(", ") || "Search genres"} endpoint={"/api/genres"} />
 
-          <Label text="Favourite Artists" />
-          <TagInput placeholder="Search artists" endpoint={"/api/genres"} />
+          {/* <Label text="Favourite Artists" />
+          <TagInput placeholder="Search artists" endpoint={"/api/genres"} /> */}
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder={userData?.user_favorite_venues.map(v => v.name).join(", ") || "Search venues"} endpoint={"/api/venues"} />
+          <TagInput placeholder={userData?.venues.map(v => v.name).join(", ") || "Search venues"} endpoint={"/api/venues"} />
         </View>
 
         {/* Logout Button */}

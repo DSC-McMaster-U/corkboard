@@ -454,30 +454,21 @@ export const db = {
                 .select(
                     `
                     *,
-                    user_favorite_genres (
-                        genre_id,
-                        genres (
-                            id,
-                            name
-                        )
+                    genres (
+                        id,
+                        name
                     ),
-                    user_favorite_venues (
-                        venue_id,
-                        venues (
-                            id,
-                            name,
-                            address,
-                            venue_type
-                        )
-                    ),
-                    user_favorite_artists (
-                        artist_id,
-                        artists (
-                            id,
-                            name,
-                            bio,
-                            image
-                        )
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type
+                    )
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
                     )
                 `,
                 )
