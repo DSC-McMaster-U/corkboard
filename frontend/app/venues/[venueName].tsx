@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-native';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router, Stack, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { EventData, EventList } from '@/constants/types';
-import { apiFetch } from '@/api/api';
+import { EventData, EventList, UserData } from '@/constants/types';
+import { apiFetch, apiFetchAuth } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -73,7 +73,6 @@ export default function VenuePage() {
         }
       }
     };
-
     // Debounce: wait 300ms after range changes before fetching
     const timer = setTimeout(fetchEvents, 300);
 
@@ -82,27 +81,39 @@ export default function VenuePage() {
       controller.abort();
       isMounted = false;
     };
-
-    // check if already favourited on mount
-      if (!venueID) return;
-      setIsFavourite(false); // Placeholder until backend is implemented
-      setFavouriteLoading(false);
-      // const checkBookmarkStatus = async () => {
-      //   try {
-      //     const response = await apiFetch<BookmarkResponse>('api/bookmarks', {
-      //       headers: { Authorization: 'TESTING_BYPASS' },
-      //     });
-
-      //     const isAlreadyBookmarked = response.bookmarks.some(
-      //       (bookmark) => bookmark.event_id === event_id
-      //     );
-      //     setIsBookmarked(isAlreadyBookmarked);
-      //   } catch (err) {
-      //     console.error('Failed to check bookmark status:', err);
-      //   }
-      // };
-      // checkBookmarkStatus();
   }, [venueID]);
+
+  type UserDataResponse = {
+    success: boolean;
+    user: UserData;
+  }
+
+  const venueIdParam = Array.isArray(venueID) ? venueID[0] : venueID;
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchIsFavourite = async () => {
+        if (!venueIdParam) return;
+        try {
+          setFavouriteLoading(true);
+          setError(null);
+
+          const res = await apiFetchAuth<UserDataResponse>('api/users/', {
+            method: 'GET',
+          });
+          const isFav = res.user.venues?.some((v) => String(v.id) === String(venueIdParam));
+          setIsFavourite(isFav);
+        } catch (err) {
+          console.error('Failed to fetch bookmarks:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load bookmarks');
+        } finally {
+          setFavouriteLoading(false);
+        }
+      };
+
+      fetchIsFavourite();
+    }, [venueIdParam])
+);
 
   // Get venue type emoji
   const getVenueEmoji = (type: string | undefined) => {
@@ -118,27 +129,25 @@ export default function VenuePage() {
   };
 
   const handleFavouriteToggle = async () => {
-    if (!venueID) return;
-
+    if (!venueIdParam) return;
+ 
     setFavouriteLoading(true);
     try {
-      // if (isFavourite) {
-      //   await apiFetch('api/bookmarks', {
-      //     method: 'DELETE',
-      //     headers: { Authorization: 'TESTING_BYPASS' },
-      //     body: JSON.stringify({ venueID: venueID }),
-      //   });
-      // } else {
-      //   await apiFetch('api/bookmarks', {
-      //     method: 'POST',
-      //     headers: { Authorization: 'TESTING_BYPASS' },
-      //     body: JSON.stringify({ venueID: venueID }),
-      //   });
-      // }
-      setIsFavourite(!isFavourite);
+      if (isFavourite) {
+        await apiFetchAuth('api/users/removeVenue', {
+          method: 'DELETE',
+          body: JSON.stringify({ venueId: venueIdParam }),
+        });
+      } else {
+        await apiFetchAuth('api/users/addVenue', {
+          method: 'POST',
+          body: JSON.stringify({ venueId: venueIdParam }),
+        });
+      }
+      setIsFavourite(prev => !prev);
     } catch (err: any) {
-      console.error('Bookmark toggle failed:', JSON.stringify(err, null, 2));
-      console.error('Venue ID was:', venueID);
+      console.error('Favourite toggle failed:', JSON.stringify(err, null, 2));
+      console.error('Venue ID was:', venueIdParam);
     } finally {
       setFavouriteLoading(false);
     }
