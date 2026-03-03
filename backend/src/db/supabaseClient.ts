@@ -242,7 +242,7 @@ export const db = {
 
         deleteForVenue: (venueId: string) =>
             supabase.from("events").delete().eq("venue_id", venueId),
-        
+
         getUserUploadedDrafts: (
             limit: number,
             min_start_time: string,
@@ -306,6 +306,29 @@ export const db = {
 
             return query.limit(limit);
         },
+
+        // add a genre to an event
+        addGenre: (eventId: string, genreId: string) =>
+            supabase
+                .from("event_genres")
+                .insert({ event_id: eventId, genre_id: genreId })
+                .select()
+                .single(),
+
+        // remove a genre from an event
+        removeGenre: (eventId: string, genreId: string) =>
+            supabase
+                .from("event_genres")
+                .delete()
+                .eq("event_id", eventId)
+                .eq("genre_id", genreId),
+
+        // remove all genres from an event
+        removeAllGenres: (eventId: string) =>
+            supabase
+                .from("event_genres")
+                .delete()
+                .eq("event_id", eventId),
     },
     // artists: {
     //     getAll: (limit = 50) =>

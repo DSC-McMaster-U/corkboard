@@ -79,10 +79,6 @@ export function ExploreEventsForYou() {
                     // 3. Filter events by favorite genres
                     let filteredShows = eventsRes.events || [];
 
-                    filteredShows.forEach(event => {
-                        console.log(event.event_genres);
-                    });
-
                     if (favoriteGenreIds.length > 0) {
                         filteredShows = filteredShows.filter(event =>
                             event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()))

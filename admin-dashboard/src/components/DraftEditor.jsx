@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { deleteEvent, updateEvent } from "../corkboardApi";
+import GenreSelector from "./GenreSelector";
 
 
-export default function DraftEditor({ user, event, form, setForm, dirty, onCopyDraft, refresh }) {
+export default function DraftEditor({ user, event, form, setForm, dirty, onCopyDraft, refresh, allGenres }) {
   const [loading, setLoading] = useState(false);
   if (!event) return <div>Select an event</div>;
 
@@ -70,7 +71,7 @@ export default function DraftEditor({ user, event, form, setForm, dirty, onCopyD
         {dirty ? " • Unsaved changes" : ""}
       </div>
 
-      <div style={{ display: "grid", gap: 20, maxWidth: 800, paddingBottom: 40 }}>
+      <div style={{ display: "grid", gap: 20, width: "100%", paddingBottom: 40 }}>
         <label>
           <div style={{ marginBottom: 8 }}>Draft Image</div>
           <img
@@ -156,6 +157,12 @@ export default function DraftEditor({ user, event, form, setForm, dirty, onCopyD
             style={{ width: "100%", opacity: 0.7 }}
           />
         </label>
+
+        <GenreSelector
+          allGenres={allGenres}
+          selectedGenreIds={form.genreIds}
+          onChange={(newIds) => setForm((f) => ({ ...f, genreIds: newIds }))}
+        />
 
         {/* buttons */}
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getEvents, archivePastEvents, getUserDrafts } from "./corkboardApi";
+import { getEvents, archivePastEvents, getUserDrafts, getGenres } from "./corkboardApi";
 import EventList from "./components/EventList";
 import EventEditor from "./components/EventEditor";
 import DraftEditor from "./components/DraftEditor";
@@ -44,7 +44,10 @@ export default function App() {
     status: "",
     source_url: "",
     artist: "",
+    genreIds: [],
   });
+
+  const [allGenres, setAllGenres] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
@@ -88,8 +91,14 @@ export default function App() {
       status: selected.status || "",
       source_url: selected.source_url || "",
       artist: selected.artist || "",
+      genreIds: selected.event_genres?.map(eg => eg.genre_id) || [],
     };
-    return Object.keys(baseline).some((k) => baseline[k] !== form[k]);
+    return Object.keys(baseline).some((k) => {
+      if (k === "genreIds") {
+        return JSON.stringify((baseline[k] || []).sort()) !== JSON.stringify((form[k] || []).sort());
+      }
+      return baseline[k] !== form[k];
+    });
   }, [selected, form]);
 
   async function refresh() {
@@ -113,8 +122,18 @@ export default function App() {
     }
   }
 
+  async function fetchGenres() {
+    try {
+      const gList = await getGenres();
+      setAllGenres(gList);
+    } catch (e) {
+      console.error("Error fetching genres:", e);
+    }
+  }
+
   useEffect(() => {
     refresh();
+    fetchGenres();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,6 +147,7 @@ export default function App() {
       status: selected.status || "",
       source_url: selected.source_url || "",
       artist: selected.artist || "",
+      genreIds: selected.event_genres?.map(eg => eg.genre_id) || [],
     });
     setErr(null);
     setMsg(null);
@@ -243,6 +263,7 @@ export default function App() {
             dirty={dirty}
             onCopyDraft={copyDraftJson}
             refresh={refresh}
+            allGenres={allGenres}
           />) :
           (<EventEditor
             event={selected}
@@ -251,6 +272,7 @@ export default function App() {
             dirty={dirty}
             onCopyDraft={copyDraftJson}
             refresh={refresh}
+            allGenres={allGenres}
           />)
         }
       </div>

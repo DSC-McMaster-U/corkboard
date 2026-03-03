@@ -51,7 +51,7 @@ export const eventService = {
         if (error) throw error;
         return data ?? [];
     },
-    
+
     createEvent: async (
         title: string,
         venue_id: string,
@@ -122,10 +122,24 @@ export const eventService = {
             ingestion_status?: "success" | "failed" | "pending";
             artist_id?: string | null;
             image?: string | null;
+            genreIds?: string[];
         }
     ) => {
-        const {data, error} = await db.events.updateByID(id, patch);
-        if (error) throw error;
+        const { genreIds, ...eventData } = patch;
+
+        // update event details
+        let data = null;
+        if (Object.keys(eventData).length > 0) {
+            const updateResult = await db.events.updateByID(id, eventData);
+            if (updateResult.error) throw updateResult.error;
+            data = updateResult.data;
+        }
+
+        // sync genres if provided
+        if (genreIds !== undefined) {
+            await eventService.updateEventGenres(id, genreIds);
+        }
+
         return data;
     },
     deleteEventsForVenue: async (
@@ -186,5 +200,32 @@ export const eventService = {
 
         if (error) throw error;
         return data;
+    },
+
+    addGenreToEvent: async (eventId: string, genreId: string) => {
+        const { data, error } = await db.events.addGenre(eventId, genreId);
+        if (error) throw error;
+        return data;
+    },
+
+    removeGenreFromEvent: async (eventId: string, genreId: string) => {
+        const { error } = await db.events.removeGenre(eventId, genreId);
+        if (error) throw error;
+        return true;
+    },
+
+    updateEventGenres: async (eventId: string, genreIds: string[]) => {
+        const { error: deleteError } = await db.events.removeAllGenres(eventId);
+        if (deleteError) throw deleteError;
+
+        if (genreIds.length === 0) return [];
+
+        const results = [];
+        for (const genreId of genreIds) {
+            const { data, error } = await db.events.addGenre(eventId, genreId);
+            if (error) throw error;
+            results.push(data);
+        }
+        return results;
     },
 };

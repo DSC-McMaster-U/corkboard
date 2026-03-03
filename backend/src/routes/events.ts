@@ -140,7 +140,7 @@ router.post("/updateEvent", async (req: Request, res: Response) => {
         image = undefined,
         artist_id = undefined,
     } = req.body;
-    
+
     const cost = parseFloatOr(req.body.cost, 0);
 
     if (id == undefined || id === "") {
@@ -160,13 +160,14 @@ router.post("/updateEvent", async (req: Request, res: Response) => {
         ingestion_status: "success",
         artist_id,
         image,
+        genreIds: req.body.genreIds,
     })
-    .then((result) => {
-        res.status(200).json({ id: result.id, success: true });
-    })
-    .catch((err) => {
-        res.status(500).json({ success: false, error: err });
-    });
+        .then((result) => {
+            res.status(200).json({ id: result.id, success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
 });
 
 router.delete("/deleteEvent", async (req: Request, res: Response) => {
@@ -178,57 +179,57 @@ router.delete("/deleteEvent", async (req: Request, res: Response) => {
     }
 
     eventService.deleteEventByID(id)
-    .then(() => {
-        res.status(200).json({ success: true });
-    })
-    .catch((err) => {
-        res.status(500).json({ success: false, error: err });
-    });
+        .then(() => {
+            res.status(200).json({ success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
 });
 
 router.post("/archiveEvent", async (req: Request, res: Response) => {
     const id = req.body.id as string | undefined;
-    
+
     if (id == undefined || id === "") {
         res.status(400).json({ error: "Event ID is missing" });
         return;
     }
 
     eventService.archiveEvent(id)
-    .then(() => {
-        res.status(200).json({ success: true });
-    })
-    .catch((err) => {
-        res.status(500).json({ success: false, error: err });
-    });
+        .then(() => {
+            res.status(200).json({ success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
 });
 
 router.post("/unarchiveEvent", async (req: Request, res: Response) => {
     const id = req.body.id as string | undefined;
-    
+
     if (id == undefined || id === "") {
         res.status(400).json({ error: "Event ID is missing" });
         return;
     }
 
     eventService.unarchiveEvent(id)
-    .then(() => {
-        res.status(200).json({ success: true });
-    })
-    .catch((err) => {
-        res.status(500).json({ success: false, error: err });
-    });
+        .then(() => {
+            res.status(200).json({ success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
 });
 
 
 router.post("/archivePastEvents", async (req: Request, res: Response) => {
     eventService.archivePastEvents()
-    .then(() => {
-        res.status(200).json({ success: true });
-    })
-    .catch((err) => {
-        res.status(500).json({ success: false, error: err });
-    });
+        .then(() => {
+            res.status(200).json({ success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
 });
 
 
@@ -330,7 +331,61 @@ router.post("/uploadDraft", async (req: Request, res: Response) => {
         });
 });
 
+router.post("/:id/genres", async (req: Request, res: Response) => {
+    // api/events/:id/genres - adds a genre to an event
+    const { id } = req.params;
+    const { genreId } = req.body;
 
+    if (!id || !genreId) {
+        res.status(400).json({ error: "Event ID or Genre ID missing" });
+        return;
+    }
+
+    eventService.addGenreToEvent(id, genreId)
+        .then((result) => {
+            res.status(200).json({ success: true, data: result });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
+});
+
+router.delete("/:id/genres/:genreId", async (req: Request, res: Response) => {
+    // api/events/:id/genres/:genreId - removes a genre from an event
+    const { id, genreId } = req.params;
+
+    if (!id || !genreId) {
+        res.status(400).json({ error: "Event ID or Genre ID missing" });
+        return;
+    }
+
+    eventService.removeGenreFromEvent(id, genreId)
+        .then(() => {
+            res.status(200).json({ success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
+});
+
+router.put("/:id/genres", async (req: Request, res: Response) => {
+    // api/events/:id/genres - replaces the genres for an event
+    const { id } = req.params;
+    const { genreIds } = req.body;
+
+    if (!id || !Array.isArray(genreIds)) {
+        res.status(400).json({ error: "Event ID missing or genreIds is not an array" });
+        return;
+    }
+
+    eventService.updateEventGenres(id, genreIds)
+        .then((results) => {
+            res.status(200).json({ success: true, data: results });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err });
+        });
+});
 
 // Add more event routes here (POST, PUT, DELETE, ...)
 

@@ -4,12 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 // adding components
 import { ExploreSearch } from '@/components/explore/search-bar';
-import { ExploreShows } from '@/components/explore/explore-shows';
 import { Bookmarks } from '@/components/explore/bookmarks';
 import { FeaturedArtist } from '@/components/explore/featured-artist';
 import { ExploreEventsForYou } from '@/components/explore/events-for-you';
+import { ExploreFavoriteGenres } from '@/components/explore/favorite-genres';
 import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
-import { ExploreFavoriteVenues } from '@/components/explore/favorite-venues';
 
 //import {} from 'expo-router';
 
@@ -39,16 +38,16 @@ export default function ExploreScreen() {
             <ExploreEventsForYou />
           </View>
 
+          {/* Explore shows from favourite genres*/}
+          <View className='mb-8'>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite genres</Text>
+            <ExploreFavoriteGenres />
+          </View>
+
           {/* Explore shows from favourite venues*/}
           <View className='mb-8'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events from your favourite venues</Text>
             <ExploreFavoriteVenuesEvents />
-          </View>
-
-          {/* Your favourite venues*/}
-          <View className='mb-8'>
-            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite venues</Text>
-            <ExploreFavoriteVenues />
           </View>
 
           {/* Featured Artist of the day */}

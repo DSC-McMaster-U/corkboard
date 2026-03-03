@@ -95,3 +95,94 @@ h3 {
 ::-webkit-scrollbar-thumb:hover {
   background: #bbb;
 }
+
+/* Genre Selector Styles */
+.genre-selector {
+  position: relative;
+  width: 100%;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  min-height: 42px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.genre-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #c7d2fe;
+}
+
+.genre-pill .remove-btn {
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.genre-pill .remove-btn:hover {
+  background: #c7d2fe;
+}
+
+.genre-search-input {
+  border: none !important;
+  outline: none !important;
+  padding: 4px !important;
+  min-width: 120px;
+  flex: 1;
+  font-size: 14px;
+  box-shadow: none !important;
+}
+
+.genre-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.suggestion-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+  background: #f3f4f6;
+}
+
+.suggestion-item.selected {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 500;
+}

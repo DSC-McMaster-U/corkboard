@@ -58,23 +58,31 @@ function SearchResultCard({ event, onPress }: { event: EventData; onPress: () =>
     };
 
     return (
-        <TouchableOpacity onPress={handlePress} className="mb-3">
-            <View className="flex-row bg-[#3e0000] rounded-xl p-3">
-                <Image source={{ uri: imageUri }} style={{ width: 64, height: 64, borderRadius: 8, marginRight: 12 }} resizeMode="cover" />
+        <TouchableOpacity
+            onPress={handlePress}
+            activeOpacity={0.8}
+            className="mb-3"
+        >
+            <View className="flex-row bg-[#3e0000] rounded-2xl p-3 shadow-md">
+                <Image
+                    source={{ uri: imageUri }}
+                    style={{ width: 70, height: 70, borderRadius: 12, marginRight: 14 }}
+                    resizeMode="cover"
+                />
                 <View className="flex-1 justify-center">
                     <Text className="text-white text-base font-bold" numberOfLines={1}>
                         {event.title}
                     </Text>
-                    <Text className="text-neutral-300 text-sm" numberOfLines={1}>
+                    <Text className="text-neutral-300 text-sm font-medium" numberOfLines={1}>
                         {artist}
                     </Text>
-                    <View className="flex-row items-center mt-1">
-                        <FontAwesome name="map-marker" size={12} color="#ccc" />
+                    <View className="flex-row items-center mt-1.5">
+                        <Feather name="map-pin" size={12} color="#D1D5DB" />
                         <Text className="text-neutral-400 text-xs ml-1" numberOfLines={1}>
                             {venueName}
                         </Text>
                         <Text className="text-neutral-500 mx-2">•</Text>
-                        <Text className="text-neutral-400 text-xs">
+                        <Text className="text-neutral-400 text-xs font-semibold">
                             {formatEventDateTimeToDate(event.start_time)}
                         </Text>
                     </View>
@@ -89,7 +97,7 @@ export default function SearchScreen() {
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState<Filter>('none');
     const [events, setEvents] = useState<EventData[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [queryLoading, setQueryLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
     // Auto-focus the input when the screen opens
@@ -110,7 +118,7 @@ export default function SearchScreen() {
 
         const controller = new AbortController();
         const timer = setTimeout(async () => {
-            setLoading(true);
+            setQueryLoading(true);
             setHasSearched(true);
             try {
                 const res = await apiFetch<EventList>('api/events?limit=50', { signal: controller.signal });
@@ -158,7 +166,7 @@ export default function SearchScreen() {
                     console.error('Search error:', err);
                 }
             } finally {
-                setLoading(false);
+                setQueryLoading(false);
             }
         }, 300);
 
@@ -175,13 +183,13 @@ export default function SearchScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="mr-3" hitSlop={12}>
                     <Feather name="arrow-left" size={24} color="#411900" />
                 </TouchableOpacity>
-                <View className="flex-1 flex-row items-center bg-white rounded-xl px-3 py-2">
+                <View className="flex-1 flex-row items-center bg-white rounded-2xl px-4 py-2.5 shadow-sm border border-[#E3C9AF]/30">
                     <Feather name="search" size={18} color="#666" />
                     <TextInput
                         ref={inputRef}
-                        className="flex-1 ml-2 text-base"
+                        className="flex-1 ml-3 text-base text-[#411900]"
                         placeholder="Search events..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#9a7b68"
                         value={query}
                         onChangeText={setQuery}
                         returnKeyType="search"
@@ -216,20 +224,20 @@ export default function SearchScreen() {
 
             {/* Results */}
             <ScrollView className="flex-1 px-4" keyboardShouldPersistTaps="handled">
-                {loading && (
+                {queryLoading && (
                     <View className="py-8 items-center">
                         <ActivityIndicator size="large" color="#411900" />
                     </View>
                 )}
 
-                {!loading && hasSearched && events.length === 0 && (
+                {!queryLoading && hasSearched && events.length === 0 && (
                     <View className="py-8 items-center">
                         <Feather name="search" size={48} color="#ccc" />
                         <Text className="text-neutral-500 mt-3">No results found</Text>
                     </View>
                 )}
 
-                {!loading &&
+                {!queryLoading &&
                     events.map((event) => (
                         <SearchResultCard
                             key={event.id}
