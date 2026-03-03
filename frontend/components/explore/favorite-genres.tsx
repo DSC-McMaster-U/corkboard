@@ -16,25 +16,25 @@ function GenreCard({ genre }: GenreCardProps) {
     };
 
     return (
-        <View className='mr-4' style={{ width: 160 }}>
+        <View className='w-36 mr-4'>
             <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={handlePress}
-                className='w-40 h-40 bg-[#9A6348] rounded-[32px] p-5 justify-between shadow-sm'
+                className='w-36 h-36 bg-[#9A6348] rounded-2xl p-4 justify-between shadow-sm'
             >
                 <View className='items-end'>
-                    <Ionicons name="musical-notes-outline" size={36} color="white" style={{ opacity: 0.8 }} />
+                    <Ionicons name="musical-notes-outline" size={28} color="white" style={{ opacity: 0.8 }} />
                 </View>
 
                 <Text
-                    className='text-white font-black text-xl leading-8'
+                    className='text-white font-bold text-base leading-5'
                     numberOfLines={2}
                 >
                     {genre.name}{'\n'}Shows
                 </Text>
             </TouchableOpacity>
 
-            <Text className='mt-3 text-[#411900] font-bold text-sm leading-5 px-1'>
+            <Text className='mt-2 text-foreground/60 text-xs' numberOfLines={2}>
                 Local Hamilton {genre.name} shows near you...
             </Text>
         </View>
