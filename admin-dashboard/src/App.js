@@ -157,7 +157,7 @@ export default function App() {
         refresh();
       } else {
         console.error("Failed to archive past events:", result.error);
-      } 
+      }
     } catch (error) {
       console.error("Error archiving past events:", error);
     } finally {
@@ -167,8 +167,8 @@ export default function App() {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", height: "100vh" }}>
-      <div style={{ borderRight: "1px solid #ddd", padding: 12, overflow: "auto" }}>
-        <h2 style={{ marginTop: 0 }}>Corkboard Admin (Read-only)</h2>
+      <div className="sidebar" style={{ padding: 16, overflow: "auto", borderRight: "1px solid #eee" }}>
+        <h2 style={{ marginTop: 0, marginBottom: 20 }}>Corkboard Admin</h2>
 
         <div style={{ display: "flex", flexDirection: "row", gap: 12, marginBottom: 12, fontSize: 12 }}>
           <label>
@@ -176,7 +176,7 @@ export default function App() {
               type="checkbox"
               checked={viewDrafts}
               disabled={loading}
-              onChange={(e) => setViewDrafts  (e.target.checked)}
+              onChange={(e) => setViewDrafts(e.target.checked)}
             />{" "}
             View Drafts
           </label>
@@ -214,11 +214,9 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search title, venue, artist..."
           style={{
-            width: "80%",
-            padding: 10,
-            border: "1px solid #ddd",
-            borderRadius: 8,
+            width: "100%",
             marginBottom: 10,
+            boxSizing: "border-box"
           }}
         />
 
@@ -237,7 +235,7 @@ export default function App() {
       </div>
 
       <div style={{ padding: 16, overflow: "auto" }}>
-        {viewDrafts ? 
+        {viewDrafts ?
           (<DraftEditor
             event={selected}
             form={form}

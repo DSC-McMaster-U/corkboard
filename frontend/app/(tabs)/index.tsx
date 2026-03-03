@@ -7,11 +7,13 @@ import { ExploreSearch } from '@/components/explore/search-bar';
 import { ExploreShows } from '@/components/explore/explore-shows';
 import { Bookmarks } from '@/components/explore/bookmarks';
 import { FeaturedArtist } from '@/components/explore/featured-artist';
+import { ExploreEventsForYou } from '@/components/explore/events-for-you';
+import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
+import { ExploreFavoriteVenues } from '@/components/explore/favorite-venues';
 
 //import {} from 'expo-router';
 
 export default function ExploreScreen() {
-  // fetching trending songs
 
   return (
     <SafeAreaView className='bg-background flex-1' edges={['left', 'right']}>
@@ -34,19 +36,19 @@ export default function ExploreScreen() {
           {/* Explore shows section - personalized based on bookmarks and favourites*/}
           <View className='mb-8'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events For You</Text>
-            <ExploreShows />
+            <ExploreEventsForYou />
           </View>
 
           {/* Explore shows from favourite venues*/}
           <View className='mb-8'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events from your favourite venues</Text>
-            <ExploreShows />
+            <ExploreFavoriteVenuesEvents />
           </View>
 
-          {/* Events with favourite genres*/}
+          {/* Your favourite venues*/}
           <View className='mb-8'>
-            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite genres</Text>
-            <ExploreShows />
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite venues</Text>
+            <ExploreFavoriteVenues />
           </View>
 
           {/* Featured Artist of the day */}
