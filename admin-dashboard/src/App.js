@@ -254,7 +254,7 @@ export default function App() {
         />
       </div>
 
-      <div style={{ padding: 16, overflow: "auto" }}>
+      <div style={{ padding: 28, overflow: "auto", boxSizing: "border-box" }}>
         {viewDrafts ?
           (<DraftEditor
             event={selected}
