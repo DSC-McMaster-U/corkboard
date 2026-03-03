@@ -15,26 +15,21 @@ export function FeaturedArtist() {
         // 1. Fetch user to get favorite genres
         const userRes = await apiFetchAuth<{ user: UserData }>('api/users/');
         const favoriteGenres = userRes.user.genres || [];
-        console.log('FeaturedArtist: Favorite Genres:', favoriteGenres.map(g => g.name));
-
-        if (favoriteGenres.length === 0) {
-          console.log('FeaturedArtist: No favorite genres found for user.');
-          setLoading(false);
-          return;
-        }
-
-        // 2. Select a random favorite genre
-        const favoriteGenreIds = favoriteGenres.map(g => g.id.toString());
+        // 2. Collect favorite genre IDs
+        const favoriteGenreIds = favoriteGenres.map((g: any) => g.id.toString());
         console.log('FeaturedArtist: Favorite Genre IDs:', favoriteGenreIds);
 
         // 3. Fetch events
         const eventsRes = await apiFetch<EventList>(`api/events?limit=100`);
         console.log('FeaturedArtist: Total events fetched:', eventsRes.events?.length);
 
-        // 4. Filter events that belong to ANY of the favorite genres
-        const eligibleEvents = (eventsRes.events || []).filter(event => {
-          return event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()));
-        });
+        // 4. Filter events that belong to ANY of the favorite genres (if list is not empty)
+        const eligibleEvents = favoriteGenreIds.length > 0
+          ? (eventsRes.events || []).filter(event => {
+            return event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()));
+          })
+          : [];
+
         console.log('FeaturedArtist: Eligible events for ANY favorite genre:', eligibleEvents.length);
 
         if (eligibleEvents.length > 0) {
