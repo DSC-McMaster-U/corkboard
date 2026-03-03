@@ -12,25 +12,17 @@ export function FeaturedArtist() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch user to get favorite genres
         const userRes = await apiFetchAuth<{ user: UserData }>('api/users/');
         const favoriteGenres = userRes.user.genres || [];
-        // 2. Collect favorite genre IDs
-        const favoriteGenreIds = favoriteGenres.map((g: any) => g.id.toString());
-        console.log('FeaturedArtist: Favorite Genre IDs:', favoriteGenreIds);
+        const favoriteGenreIds = favoriteGenres.map((g: { id: string }) => g.id.toString());
 
-        // 3. Fetch events
         const eventsRes = await apiFetch<EventList>(`api/events?limit=100`);
-        console.log('FeaturedArtist: Total events fetched:', eventsRes.events?.length);
 
-        // 4. Filter events that belong to ANY of the favorite genres (if list is not empty)
         const eligibleEvents = favoriteGenreIds.length > 0
           ? (eventsRes.events || []).filter(event => {
             return event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()));
           })
           : [];
-
-        console.log('FeaturedArtist: Eligible events for ANY favorite genre:', eligibleEvents.length);
 
         if (eligibleEvents.length > 0) {
           const randomEvent = eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)];
@@ -38,7 +30,6 @@ export function FeaturedArtist() {
         } else {
           // If no events match favorite genres, just pick any random event as fallback
           if (eventsRes.events && eventsRes.events.length > 0) {
-            console.log('FeaturedArtist: No genre matches, using random fallback event.');
             setFeaturedEvent(eventsRes.events[Math.floor(Math.random() * eventsRes.events.length)]);
           }
         }
