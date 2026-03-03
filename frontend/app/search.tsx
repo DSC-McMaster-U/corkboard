@@ -63,26 +63,30 @@ function SearchResultCard({ event, onPress }: { event: EventData; onPress: () =>
             activeOpacity={0.8}
             className="mb-3"
         >
-            <View className="flex-row bg-[#3e0000] rounded-2xl p-3 shadow-md">
-                <Image
-                    source={{ uri: imageUri }}
-                    style={{ width: 70, height: 70, borderRadius: 12, marginRight: 14 }}
-                    resizeMode="cover"
-                />
-                <View className="flex-1 justify-center">
-                    <Text className="text-white text-base font-bold" numberOfLines={1}>
+            <View className="flex-row bg-[#9A6348] rounded-3xl p-4 shadow-sm border border-black/5">
+                <View className="shadow-sm">
+                    <Image
+                        source={{ uri: imageUri }}
+                        style={{ width: 80, height: 80, borderRadius: 20, marginRight: 16 }}
+                        resizeMode="cover"
+                    />
+                </View>
+                <View className="flex-1 justify-center py-1">
+                    <Text className="text-white text-[15px] font-bold mb-0.5" numberOfLines={1}>
                         {event.title}
                     </Text>
-                    <Text className="text-neutral-300 text-sm font-medium" numberOfLines={1}>
+                    <Text className="text-neutral-200 text-[13px] font-medium mb-2" numberOfLines={1}>
                         {artist}
                     </Text>
-                    <View className="flex-row items-center mt-1.5">
-                        <Feather name="map-pin" size={12} color="#D1D5DB" />
-                        <Text className="text-neutral-400 text-xs ml-1" numberOfLines={1}>
-                            {venueName}
-                        </Text>
-                        <Text className="text-neutral-500 mx-2">•</Text>
-                        <Text className="text-neutral-400 text-xs font-semibold">
+                    <View className="flex-row items-center">
+                        <View className="bg-white/20 px-2 py-1 rounded-lg flex-row items-center">
+                            <Feather name="map-pin" size={10} color="white" />
+                            <Text className="text-white text-[10px] font-bold ml-1 uppercase tracking-tight" numberOfLines={1}>
+                                {venueName.split(' ')[0]}
+                            </Text>
+                        </View>
+                        <Text className="text-white/30 mx-2 text-[10px]">•</Text>
+                        <Text className="text-neutral-300 text-[11px] font-semibold">
                             {formatEventDateTimeToDate(event.start_time)}
                         </Text>
                     </View>
