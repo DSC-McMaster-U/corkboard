@@ -121,7 +121,7 @@ export default function GenreEventsPage() {
                 <TouchableOpacity onPress={() => router.back()} className="p-2">
                     <Feather name="arrow-left" size={24} color="#411900" />
                 </TouchableOpacity>
-                <Text className="text-2xl font-black text-foreground ml-2">
+                <Text className="text-xl font-semibold text-foreground ml-2">
                     {genreName || "Genre"} Shows
                 </Text>
             </View>
