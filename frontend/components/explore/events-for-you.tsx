@@ -36,6 +36,17 @@ export function ExploreEventsForYou() {
                         );
                     }
 
+                    // 4. Further filter by favorite venues if applicable (if at least 8 events remain after venue filtering)
+                    const favoriteVenueIds = userRes.user.venues?.map(v => v.id.toString()) || [];
+                    if (favoriteVenueIds.length > 0 && filteredShows.length) {
+                        const venueFilteredShows = filteredShows.filter(event =>
+                            favoriteVenueIds.includes(event.venue_id.toString())
+                        );
+                        if (venueFilteredShows.length >= 8) {
+                            filteredShows = venueFilteredShows;
+                        }
+                    }
+
                     setShows(filteredShows);
                 }
             } catch (err: any) {
