@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 import { UserData, EventData, EventList } from '@/constants/types';
 
-export function FeaturedArtist() {
+export function HighlightedEvent() {
   const [featuredEvent, setFeaturedEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +34,7 @@ export function FeaturedArtist() {
           }
         }
       } catch (error) {
-        console.error('Error fetching featured artist:', error);
+        console.error('Error fetching highlighted event:', error);
       } finally {
         setLoading(false);
       }
@@ -89,7 +89,7 @@ export function FeaturedArtist() {
           className='rounded-xl h-56 w-full overflow-hidden justify-end'
           imageStyle={{ borderRadius: 12 }}
         >
-          <View className='py-4 px-6 bg-black/30 w-full'>
+          <View className='py-4 px-6 bg-black/45 w-full'>
             <Text className='text-white text-xl font-bold'>
               {displayTitle}
             </Text>

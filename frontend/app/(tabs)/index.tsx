@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // adding components
 import { ExploreSearch } from '@/components/explore/search-bar';
 import { Bookmarks } from '@/components/explore/bookmarks';
-import { FeaturedArtist } from '@/components/explore/featured-artist';
+import { HighlightedEvent } from '@/components/explore/featured-artist';
 import { ExploreEventsForYou } from '@/components/explore/events-for-you';
 import { ExploreFavoriteGenres } from '@/components/explore/favorite-genres';
 import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
@@ -21,38 +21,37 @@ export default function ExploreScreen() {
 
         {/* heading with search bar and profile picture*/}
         <View className='flex-row justify-between items-center mb-8'>
-          <View className='flex-1 mr-12'>
+          <View className='flex-1'>
             <ExploreSearch />
           </View>
-          <View className='w-8 h-8 rounded-full bg-blue-300' />
         </View>
         <ScrollView>
           {/* Bookmarks Section */}
-          <View className='mb-8'>
+          <View className='mb-6'>
             <Bookmarks />
           </View>
 
           {/* Explore shows section - personalized based on bookmarks and favourites*/}
-          <View className='mb-8'>
+          <View className='mb-6'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events For You</Text>
             <ExploreEventsForYou />
           </View>
 
           {/* Explore shows from favourite genres*/}
-          <View className='mb-8'>
+          <View className='mb-6'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Your favourite genres</Text>
             <ExploreFavoriteGenres />
           </View>
 
           {/* Explore shows from favourite venues*/}
-          <View className='mb-8'>
+          <View className='mb-6'>
             <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events from your favourite venues</Text>
             <ExploreFavoriteVenuesEvents />
           </View>
 
-          {/* Featured Artist of the day */}
-          <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Featured artist for you</Text>
-          <FeaturedArtist />
+          {/* Highlighted event */}
+          <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>An Event For You</Text>
+          <HighlightedEvent />
         </ScrollView>
       </View>
     </SafeAreaView>
