@@ -56,9 +56,9 @@ export default function ShowDetailsPage() {
   }, [event_id]);
 
   // Get the proper image URL
-  
+
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imgNormalized = Array.isArray(image) ? image[0] : image;  
+  const imgNormalized = Array.isArray(image) ? image[0] : image;
   const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
 
   // Parse genres if passed as JSON string

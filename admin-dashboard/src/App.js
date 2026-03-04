@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getEvents, archivePastEvents, getUserDrafts } from "./corkboardApi";
+import { getEvents, archivePastEvents, getUserDrafts, getGenres } from "./corkboardApi";
 import EventList from "./components/EventList";
 import EventEditor from "./components/EventEditor";
 import DraftEditor from "./components/DraftEditor";
@@ -44,7 +44,10 @@ export default function App() {
     status: "",
     source_url: "",
     artist: "",
+    genreIds: [],
   });
+
+  const [allGenres, setAllGenres] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
@@ -88,8 +91,14 @@ export default function App() {
       status: selected.status || "",
       source_url: selected.source_url || "",
       artist: selected.artist || "",
+      genreIds: selected.event_genres?.map(eg => eg.genre_id) || [],
     };
-    return Object.keys(baseline).some((k) => baseline[k] !== form[k]);
+    return Object.keys(baseline).some((k) => {
+      if (k === "genreIds") {
+        return JSON.stringify((baseline[k] || []).sort()) !== JSON.stringify((form[k] || []).sort());
+      }
+      return baseline[k] !== form[k];
+    });
   }, [selected, form]);
 
   async function refresh() {
@@ -113,8 +122,18 @@ export default function App() {
     }
   }
 
+  async function fetchGenres() {
+    try {
+      const gList = await getGenres();
+      setAllGenres(gList);
+    } catch (e) {
+      console.error("Error fetching genres:", e);
+    }
+  }
+
   useEffect(() => {
     refresh();
+    fetchGenres();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,6 +147,7 @@ export default function App() {
       status: selected.status || "",
       source_url: selected.source_url || "",
       artist: selected.artist || "",
+      genreIds: selected.event_genres?.map(eg => eg.genre_id) || [],
     });
     setErr(null);
     setMsg(null);
@@ -157,7 +177,7 @@ export default function App() {
         refresh();
       } else {
         console.error("Failed to archive past events:", result.error);
-      } 
+      }
     } catch (error) {
       console.error("Error archiving past events:", error);
     } finally {
@@ -167,8 +187,8 @@ export default function App() {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", height: "100vh" }}>
-      <div style={{ borderRight: "1px solid #ddd", padding: 12, overflow: "auto" }}>
-        <h2 style={{ marginTop: 0 }}>Corkboard Admin (Read-only)</h2>
+      <div className="sidebar" style={{ padding: 16, overflow: "auto", borderRight: "1px solid #eee" }}>
+        <h2 style={{ marginTop: 0, marginBottom: 20 }}>Corkboard Admin</h2>
 
         <div style={{ display: "flex", flexDirection: "row", gap: 12, marginBottom: 12, fontSize: 12 }}>
           <label>
@@ -176,7 +196,7 @@ export default function App() {
               type="checkbox"
               checked={viewDrafts}
               disabled={loading}
-              onChange={(e) => setViewDrafts  (e.target.checked)}
+              onChange={(e) => setViewDrafts(e.target.checked)}
             />{" "}
             View Drafts
           </label>
@@ -214,11 +234,9 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search title, venue, artist..."
           style={{
-            width: "80%",
-            padding: 10,
-            border: "1px solid #ddd",
-            borderRadius: 8,
+            width: "100%",
             marginBottom: 10,
+            boxSizing: "border-box"
           }}
         />
 
@@ -236,8 +254,8 @@ export default function App() {
         />
       </div>
 
-      <div style={{ padding: 16, overflow: "auto" }}>
-        {viewDrafts ? 
+      <div style={{ padding: 28, overflow: "auto", boxSizing: "border-box" }}>
+        {viewDrafts ?
           (<DraftEditor
             event={selected}
             form={form}
@@ -245,6 +263,7 @@ export default function App() {
             dirty={dirty}
             onCopyDraft={copyDraftJson}
             refresh={refresh}
+            allGenres={allGenres}
           />) :
           (<EventEditor
             event={selected}
@@ -253,6 +272,7 @@ export default function App() {
             dirty={dirty}
             onCopyDraft={copyDraftJson}
             refresh={refresh}
+            allGenres={allGenres}
           />)
         }
       </div>

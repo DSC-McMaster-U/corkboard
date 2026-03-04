@@ -10,6 +10,15 @@ export async function getEvents(limit = 200, includeArchived = false, hideOld = 
   return data.events || [];
 }
 
+export async function getGenres() {
+  const res = await fetch(`${API_BASE}/api/genres`, {
+    headers: { Accept: "application/json" },
+  });
+  const data = await res.json();
+  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  return data.genres || [];
+}
+
 export async function updateEvent(form, eventId) {
   const res = await fetch(`${API_BASE}/api/events/updateEvent`, {
     method: "POST",

@@ -20,76 +20,20 @@ type Filter = 'none' | 'genre' | 'artist' | 'venue';
 
 const PLACEHOLDER_IMAGE = 'https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b';
 
+import { EventListCard } from '@/components/ui/event-list-card';
+
 const FILTER_OPTIONS: { key: Filter; label: string }[] = [
     { key: 'none', label: 'All' },
     { key: 'artist', label: 'Artist' },
     { key: 'venue', label: 'Venue' },
 ];
 
-function SearchResultCard({ event, onPress }: { event: EventData; onPress: () => void }) {
-    const imageUri = event.image || PLACEHOLDER_IMAGE;
-    const venueName = event.venues?.name || 'Unspecified venue';
-    const artist = event.artist || 'Unspecified artist';
-
-    const handlePress = () => {
-        Keyboard.dismiss();
-        router.push({
-            pathname: '/shows/[showName]',
-            params: {
-                showName: event.title,
-                description: event.description || '',
-                start_time: event.start_time,
-                cost: event.cost?.toString() || '',
-                artist: event.artist || '',
-                image: event.image || '',
-                venue_name: event.venues?.name || '',
-                venue_id: event.venues?.id || '',
-                venue_address: event.venues?.address || '',
-                venue_latitude: event.venues?.latitude?.toString() || '',
-                venue_longtidue: event.venues?.longitude?.toString() || '',
-                venue_type: event.venues?.venue_type || '',
-                source_url: event.source_url || '',
-                genres: JSON.stringify(
-                    (event.event_genres || []).map((eg) => eg.genres?.name || '')
-                ),
-                event_id: event.id.toString(),
-            },
-        });
-    };
-
-    return (
-        <TouchableOpacity onPress={handlePress} className="mb-3">
-            <View className="flex-row bg-[#3e0000] rounded-xl p-3">
-                <Image source={{ uri: imageUri }} style={{ width: 64, height: 64, borderRadius: 8, marginRight: 12 }} resizeMode="cover" />
-                <View className="flex-1 justify-center">
-                    <Text className="text-white text-base font-bold" numberOfLines={1}>
-                        {event.title}
-                    </Text>
-                    <Text className="text-neutral-300 text-sm" numberOfLines={1}>
-                        {artist}
-                    </Text>
-                    <View className="flex-row items-center mt-1">
-                        <FontAwesome name="map-marker" size={12} color="#ccc" />
-                        <Text className="text-neutral-400 text-xs ml-1" numberOfLines={1}>
-                            {venueName}
-                        </Text>
-                        <Text className="text-neutral-500 mx-2">•</Text>
-                        <Text className="text-neutral-400 text-xs">
-                            {formatEventDateTimeToDate(event.start_time)}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-}
-
 export default function SearchScreen() {
     const inputRef = useRef<TextInput>(null);
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState<Filter>('none');
     const [events, setEvents] = useState<EventData[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [queryLoading, setQueryLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
     // Auto-focus the input when the screen opens
@@ -110,7 +54,7 @@ export default function SearchScreen() {
 
         const controller = new AbortController();
         const timer = setTimeout(async () => {
-            setLoading(true);
+            setQueryLoading(true);
             setHasSearched(true);
             try {
                 const res = await apiFetch<EventList>('api/events?limit=50', { signal: controller.signal });
@@ -158,7 +102,7 @@ export default function SearchScreen() {
                     console.error('Search error:', err);
                 }
             } finally {
-                setLoading(false);
+                setQueryLoading(false);
             }
         }, 300);
 
@@ -175,13 +119,13 @@ export default function SearchScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="mr-3" hitSlop={12}>
                     <Feather name="arrow-left" size={24} color="#411900" />
                 </TouchableOpacity>
-                <View className="flex-1 flex-row items-center bg-white rounded-xl px-3 py-2">
+                <View className="flex-1 flex-row items-center bg-white rounded-2xl px-4 py-2.5 shadow-sm border border-[#E3C9AF]/30">
                     <Feather name="search" size={18} color="#666" />
                     <TextInput
                         ref={inputRef}
-                        className="flex-1 ml-2 text-base"
+                        className="flex-1 ml-3 text-base text-[#411900]"
                         placeholder="Search events..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#9a7b68"
                         value={query}
                         onChangeText={setQuery}
                         returnKeyType="search"
@@ -216,25 +160,24 @@ export default function SearchScreen() {
 
             {/* Results */}
             <ScrollView className="flex-1 px-4" keyboardShouldPersistTaps="handled">
-                {loading && (
+                {queryLoading && (
                     <View className="py-8 items-center">
                         <ActivityIndicator size="large" color="#411900" />
                     </View>
                 )}
 
-                {!loading && hasSearched && events.length === 0 && (
+                {!queryLoading && hasSearched && events.length === 0 && (
                     <View className="py-8 items-center">
                         <Feather name="search" size={48} color="#ccc" />
                         <Text className="text-neutral-500 mt-3">No results found</Text>
                     </View>
                 )}
 
-                {!loading &&
+                {!queryLoading &&
                     events.map((event) => (
-                        <SearchResultCard
+                        <EventListCard
                             key={event.id}
                             event={event}
-                            onPress={() => { }}
                         />
                     ))}
 

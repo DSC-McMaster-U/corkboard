@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { deleteEvent, updateEvent } from "../corkboardApi";
+import GenreSelector from "./GenreSelector";
 
-function toDateTimeLocal(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-}
 
-export default function DraftEditor({ user, event, form, setForm, dirty, onCopyDraft, refresh }) {
+export default function DraftEditor({ user, event, form, setForm, dirty, onCopyDraft, refresh, allGenres }) {
   const [loading, setLoading] = useState(false);
   if (!event) return <div>Select an event</div>;
 
@@ -78,77 +71,98 @@ export default function DraftEditor({ user, event, form, setForm, dirty, onCopyD
         {dirty ? " • Unsaved changes" : ""}
       </div>
 
-      <div style={{ display: "grid", gap: 12, maxWidth: 720 }}>
+      <div style={{ display: "grid", gap: 20, width: "100%", paddingBottom: 40 }}>
         <label>
-          <div>Title</div>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            style={{ width: "100%", padding: 8 }}
+          <div style={{ marginBottom: 8 }}>Draft Image</div>
+          <img
+            src={event.image}
+            style={{
+              width: "100%",
+              height: 300,
+              objectFit: "contain",
+              backgroundColor: "#f9f9f9",
+              borderRadius: 12,
+              border: "1px solid #eee"
+            }}
+            alt={form.title}
           />
         </label>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <label>
+            <div>Title</div>
+            <input
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </label>
+
+          <label>
+            <div>Artist</div>
+            <input
+              value={form.artist}
+              onChange={(e) => setForm((f) => ({ ...f, artist: e.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </label>
+        </div>
 
         <label>
           <div>Description</div>
           <textarea
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            rows={6}
-            style={{ width: "100%", padding: 8 }}
+            rows={8}
+            style={{ width: "100%", resize: "vertical" }}
           />
         </label>
 
-        <label>
-          <div>Start time</div>
-          <input
-            type="datetime-local"
-            value={form.start_time}
-            onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
-            style={{ width: "fit-content", padding: 8 }}
-          />
-          <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>
-            Current: {new Date(event.start_time).toLocaleString()} ({event.start_time})
-          </div>
-        </label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <label>
+            <div>Start time</div>
+            <input
+              type="datetime-local"
+              value={form.start_time}
+              onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </label>
 
-        <label>
-          <div>Cost</div>
-          <input
-            inputMode="decimal"
-            value={form.cost}
-            onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
-            style={{ width: 200, padding: 8 }}
-          />
-        </label>
+          <label>
+            <div>Cost ($)</div>
+            <input
+              inputMode="decimal"
+              value={form.cost}
+              onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </label>
 
-        <label>
-          <div>Status</div>
-          <input
-            disabled={true}
-            value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            style={{ width: 260, padding: 8 }}
-          />
-        </label>
-
-        <label>
-          <div>Artist</div>
-          <input
-            value={form.artist}
-            onChange={(e) => setForm((f) => ({ ...f, artist: e.target.value }))}
-            style={{ width: "100%", padding: 8 }}
-          />
-        </label>
+          <label>
+            <div>Status</div>
+            <input
+              disabled={true}
+              value={form.status}
+              style={{ width: "100%", opacity: 0.7 }}
+            />
+          </label>
+        </div>
 
         <label>
           <div>User ID</div>
           <input
             disabled={true}
             value={form.source_url}
-            onChange={(e) => setForm((f) => ({ ...f, source_url: e.target.value }))}
-            style={{ width: "100%", padding: 8 }}
+            style={{ width: "100%", opacity: 0.7 }}
           />
         </label>
+
+        <GenreSelector
+          allGenres={allGenres}
+          selectedGenreIds={form.genreIds}
+          onChange={(newIds) => setForm((f) => ({ ...f, genreIds: newIds }))}
+        />
 
         {/* buttons */}
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -162,15 +176,15 @@ export default function DraftEditor({ user, event, form, setForm, dirty, onCopyD
             Save
           </button>
 
-          <button 
+          <button
             disabled={loading}
             onClick={acceptDraft}
-            style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", background: "azure"}}
+            style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", background: "azure" }}
           >
             Publish
           </button>
 
-          <button 
+          <button
             disabled={loading}
             onClick={rejectDraft}
             style={{ padding: "10px 14px", opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", background: "mistyrose" }}

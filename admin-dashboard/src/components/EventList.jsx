@@ -7,16 +7,20 @@ export default function EventList({ events, selectedId, onSelect }) {
           onClick={() => onSelect(e.id)}
           style={{
             textAlign: "left",
-            padding: 10,
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            background: e.archived ? "#f3f3f3" : selectedId === e.id ? "#e0e0e0" : "white",
+            padding: "12px 14px",
+            border: "1px solid",
+            borderColor: selectedId === e.id ? "#007bff" : "#eee",
+            borderRadius: 10,
+            background: e.archived ? "#f9f9f9" : selectedId === e.id ? "#f0f7ff" : "white",
             cursor: "pointer",
+            boxShadow: selectedId === e.id ? "0 2px 8px rgba(0,123,255,0.1)" : "none",
+            display: "block",
+            width: "100%"
           }}
         >
-          <div style={{ fontWeight: 600 }}>{e.title}</div>
-          <div style={{ fontSize: 12, opacity: 0.75 }}>
-            {new Date(e.start_time).toLocaleString()} • {e.venues?.name || "Unknown venue"}
+          <div style={{ fontWeight: 600, color: e.archived ? "#888" : "#1a1a1a", fontSize: 14 }}>{e.title}</div>
+          <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>
+            {new Date(e.start_time).toLocaleDateString()} • {e.venues?.name || "Unknown venue"}
           </div>
         </button>
       ))}
