@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // adding components
 import { ExploreSearch } from '@/components/explore/search-bar';
 import { Bookmarks } from '@/components/explore/bookmarks';
-import { HighlightedEvent } from '@/components/explore/featured-artist';
+import { HighlightedEvent } from '@/components/explore/highlighted-event';
 import { ExploreEventsForYou } from '@/components/explore/events-for-you';
 import { ExploreFavoriteGenres } from '@/components/explore/favorite-genres';
 import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
