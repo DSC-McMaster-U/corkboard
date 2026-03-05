@@ -262,20 +262,20 @@ export const db = {
                         venue_type,
                         latitude,
                         longitude
-                    ),
+                    )
                     event_genres (
                         genre_id,
                         genres (
                             id,
                             name
                         )
-                    ),
+                    )
                     artists (
                         id,
                         name,
                         bio,
                         image
-                    ),
+                    )
                     users (
                         id,
                         email,

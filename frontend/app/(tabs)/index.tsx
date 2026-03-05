@@ -10,6 +10,7 @@ import { ExploreEventsForYou } from '@/components/explore/events-for-you';
 import { ExploreFavoriteGenres } from '@/components/explore/favorite-genres';
 import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
 import { ExploreEventsFromFavGenres } from '@/components/explore/events-genres-mixed';
+import { ShowcaseEvent } from '@/components/explore/showcase-event';
 
 //import {} from 'expo-router';
 
@@ -32,10 +33,15 @@ export default function ExploreScreen() {
             <Bookmarks />
           </View>
 
-          {/* Explore shows section - personalized based on favourites*/}
+          {/* Explore shows - personalized based on favourites*/}
           <View className='mb-6'>
-            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events For You</Text>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Based on all your favourites</Text>
             <ExploreEventsForYou />
+          </View>
+
+          {/* Showcased Event 1 */}
+          <View className='mb-6'>
+            <ShowcaseEvent eventId={"33450f88-351e-4dd8-8621-5aeb6ee6bf89"} showcaseMessage='Wolf Parade returns, live at Bridgeworks'/>
           </View>
 
           {/* Explore shows from favourite genres*/}
@@ -50,6 +56,11 @@ export default function ExploreScreen() {
             <ExploreFavoriteVenuesEvents />
           </View>
 
+          {/* Showcased Event 2 */}
+          <View className='mb-6'>
+            <ShowcaseEvent eventId={"50539bda-0c5c-49d2-9e73-96990d13d4e3"} showcaseMessage='with hi, low + Dear Maryanne'/>
+          </View>
+
           {/* Explore shows from all your favourite genres */}
           <View className='mb-6'>
              <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Events from all your favourite genres</Text>
@@ -57,7 +68,7 @@ export default function ExploreScreen() {
           </View>
 
           {/* Highlighted event */}
-          <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>An Event For You</Text>
+          <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Here's a randomly chosen event..</Text>
           <HighlightedEvent />
         </ScrollView>
       </View>
