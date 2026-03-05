@@ -44,20 +44,33 @@ export default function SearchScreen() {
         return () => clearTimeout(timer);
     }, []);
 
-    // Search logic with debounce
+    // Fetch all events on mount and when query is empty
     useEffect(() => {
+        const controller = new AbortController();
+        async function fetchAllEvents() {
+            setQueryLoading(true);
+            try {
+                const res = await apiFetch<EventList>('api/events?limit=50&archived=false', { signal: controller.signal });
+                setEvents(res.events ?? []);
+            } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                    console.error('Fetch all events error:', err);
+                }
+            } finally {
+                setQueryLoading(false);
+                setHasSearched(false);
+            }
+        }
         if (query.trim().length === 0) {
-            setEvents([]);
-            setHasSearched(false);
-            return;
+            fetchAllEvents();
+            return () => controller.abort();
         }
 
-        const controller = new AbortController();
         const timer = setTimeout(async () => {
             setQueryLoading(true);
             setHasSearched(true);
             try {
-                const res = await apiFetch<EventList>('api/events?limit=50', { signal: controller.signal });
+                const res = await apiFetch<EventList>('api/events?limit=50&archived=false', { signal: controller.signal });
 
                 const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
 

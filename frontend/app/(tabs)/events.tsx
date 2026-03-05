@@ -8,6 +8,7 @@ import type { EventData, EventList, GenreData, Genre } from "@/constants/types";
 import { formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
 import { apiFetch } from "@/api/api";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EventListCard } from "@/components/ui/event-list-card";
 
 type InfoBoxProps = {
   event: EventData;
@@ -95,7 +96,7 @@ function InfoBox({ event, onPress }: InfoBoxProps) {
         </View>
 
         {/* right side - image */}
-        <Image source={{ uri: imageUri }} className='w-[32%] h-full rounded-md' resizeMode="cover" />
+        <Image source={{ uri: imageUri }} className='w-[32%] h-full rounded-lg' resizeMode="cover" />
       </View>
     </TouchableOpacity>
   );
@@ -246,16 +247,17 @@ export default function EventsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120 }}>
+        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120, marginHorizontal: 16 }} keyboardShouldPersistTaps="handled">
           {eventList.map((event) => (
-            <InfoBox
-              key={event.id}
-              event={event}
-              onPress={() => {
-                setSelectedEvent(event);
-                setModalVisible(true);
-              }}
-            />
+            <EventListCard key={event.id} event={event} />
+            // <InfoBox
+            //   key={event.id}
+            //   event={event}
+            //   onPress={() => {
+            //     setSelectedEvent(event);
+            //     setModalVisible(true);
+            //   }}
+            // />
           ))}
         </ScrollView>
 

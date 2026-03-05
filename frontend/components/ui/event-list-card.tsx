@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, Keyboard } from 'react-native';
 import { router } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { FontAwesome, Feather } from '@expo/vector-icons';
 import { EventData } from '@/constants/types';
-import { formatEventDateTimeToDate } from '@/scripts/formatDateHelper';
+import { formatEventDateTimeToDate, formatEventDateTimeToTime } from '@/scripts/formatDateHelper';
 
 export interface EventListCardProps {
     event: EventData;
@@ -51,20 +51,13 @@ export function EventListCard({ event }: EventListCardProps) {
         <TouchableOpacity
             onPress={handlePress}
             activeOpacity={0.85}
-            className="mb-4"
+            className="mb-4 w-full"
         >
-            <View className="flex-row bg-[#9A6348] rounded-2xl p-2 shadow-lg border border-black/10">
-                {/* Event image with rounded corners and shadow */}
-                <View className="shadow-lg">
-                    <Image
-                        source={{ uri: imageUri }}
-                        className='w-32 h-32 mr-4 rounded-xl'
-                        resizeMode="cover"
-                    />
-                </View>
-                {/* Card content */}
+            <View className="flex-row bg-[#9A6348] rounded-xl p-2 shadow-lg border border-black/10 w-full">
+                {/* image */}
+                <Image source={{ uri: imageUri}} className='w-[32%] h-full rounded-md mr-2' resizeMode='cover' />
+                {/* event details */}
                 <View className="flex-1 justify-between py-1">
-                    {/* Title and artist */}
                     <Text className="text-white text-[16px] font-bold mb-1" numberOfLines={2}>
                         {event.title}
                     </Text>
@@ -73,9 +66,46 @@ export function EventListCard({ event }: EventListCardProps) {
                             {artist}
                         </Text>
                     )}
-                    {/* Genres as pill tags */}
+
+                    {/* venue */}
+                    <View className='flex-row items-center mt-0.5'>
+                        <FontAwesome name="map-marker" size={12} color="white" />
+                        <Text className='text-white text-sm ml-1.5' numberOfLines={1}>
+                            {venueName}
+                        </Text>
+                    </View>
+
+                    {/* ticket price */}
+                    {event.cost !== undefined && (
+                        <View className='flex-row items-center mt-0.5'>
+                            <FontAwesome name="ticket" size={12} color="white" />
+                            <Text className='text-white text-sm ml-1.5' numberOfLines={1}>
+                                {costLabel}
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* date time chips */}
+                    <View className="flex-row items-center mt-0.5">
+                        <View className="flex-row items-center bg-white/10 rounded-full px-2 py-0.5 mr-1.5">
+                            <FontAwesome name="calendar" size={11} color="#fff" />
+                            <Text className="text-white text-xs ml-1">
+                            {formatEventDateTimeToDate(event.start_time)}
+                            </Text>
+                        </View>
+                        <View className="flex-row items-center bg-white/10 rounded-full px-2 py-0.5">
+                            <FontAwesome name="clock-o" size={11} color="#fff" />
+                            <Text className="text-white text-xs ml-1">
+                            {formatEventDateTimeToTime(event.start_time)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    
+
+                    {/* genre tags */}
                     {genres.length > 0 && (
-                        <View className="flex-row flex-wrap mb-2">
+                        <View className="flex-row flex-wrap mt-2">
                             {genres.map((genre, idx) => (
                                 <View
                                     key={genre + idx}
@@ -86,27 +116,6 @@ export function EventListCard({ event }: EventListCardProps) {
                             ))}
                         </View>
                     )}
-                    {/* Date badge, price, venue */}
-                    <View className="flex-row items-center mt-1">
-                        <View className="bg-white/20 px-2 py-1 rounded-lg flex-row items-center mr-2">
-                            <Feather name="calendar" size={12} color="white" />
-                            <Text className="text-white text-xs font-bold ml-1 tracking-tight" numberOfLines={1}>
-                                {formatEventDateTimeToDate(event.start_time)}
-                            </Text>
-                        </View>
-                        <View className="bg-white/20 px-2 py-1 rounded-lg flex-row items-center mr-2">
-                            <Feather name="dollar-sign" size={12} color="white" />
-                            <Text className="text-white text-xs font-bold ml-1 tracking-tight" numberOfLines={1}>
-                                {costLabel}
-                            </Text>
-                        </View>
-                        <View className="bg-white/20 px-2 py-1 rounded-lg flex-row items-center">
-                            <Feather name="map-pin" size={12} color="white" />
-                            <Text className="text-white text-xs font-bold ml-1 uppercase tracking-tight" numberOfLines={1}>
-                                {venueName.split(' ')[0]}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
             </View>
         </TouchableOpacity>
