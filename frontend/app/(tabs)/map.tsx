@@ -21,7 +21,7 @@ export default function MapScreen() {
   const defaultEndDate: Date = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);  // 2 weeks in the future
 
   const [dateRange, setDateRange] = useState<[Date, Date]>([currentDate, defaultEndDate]);  // state for date range -> bottom panel
-  const [costRange, setCostRange] = useState<[number, number]>([10, 70]);
+  const [costRange, setCostRange] = useState<[number, number]>([0, 200]);
   const [searchFilter, setSearchFilter] = useState<Filter>("none")  // state for search filter ("genre", "artist", "venue", "none")
   const [searchQuery, setSearchQuery] = useState<String>("")    // state for search query
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);

@@ -45,7 +45,7 @@ export default function DateRangePicker({
         <Pressable style={[styles.btn, styles.mr]} onPress={() => open("start")}>
           <View style={styles.inline}>
             <Feather name="calendar" style={{ color: '#411900' }} size={16} />
-            <Text style={styles.label}>Start date:</Text>
+            <Text style={styles.label} className="font-semibold">Start date:</Text>
           </View>
           <Text style={[styles.value, { color: "#411900" }]}>{fmt(dateRange[0])}</Text>
         </Pressable>
@@ -53,7 +53,7 @@ export default function DateRangePicker({
         <Pressable style={styles.btn} onPress={() => open("end")}>
           <View style={styles.inline}>
             <Feather name="calendar" style={{ color: '#411900' }} size={16} />
-            <Text style={styles.label} >End date:</Text>
+            <Text style={styles.label} className="font-semibold">End date:</Text>
           </View>
           <Text style={[styles.value, { color: "#411900" }]}>{fmt(dateRange[1])}</Text>
         </Pressable>

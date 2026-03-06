@@ -18,9 +18,10 @@ type Props = {
 };
 
 export default function BottomPanel({ range, setRange, dateRange, setDateRange, setSearchFilter, setSearchQuery }: Props) {
-  const snapPoints = useMemo(() => ['12%', '45%'], []);
+  const snapPoints = useMemo(() => ['12%', '42%'], []);
   const [searchActive, setSearchActive] = useState(false);
   const dismissRef = useRef<() => void>(() => {});
+  const maxCostValue = 200;
 
   return (
     <BottomSheet
@@ -36,7 +37,7 @@ export default function BottomPanel({ range, setRange, dateRange, setDateRange, 
       style={{ flex: 1 }}
       >
       
-        <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 }}>
+        <BottomSheetView style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 10 }}>
 
           {/* Full-sheet invisible overlay to dismiss search (shown only when active) */}
           {searchActive && (
@@ -67,13 +68,19 @@ export default function BottomPanel({ range, setRange, dateRange, setDateRange, 
             />
           </View>
 
-          <Text style={{ marginBottom: 5, color: '#411900' }}>Ticket price:</Text>
-
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#411900' }}>${range[0].toFixed(0)}</Text>
-            <Text style={{ color: '#411900' }}>${range[1].toFixed(0)}</Text>
+          
+          {/* Calendar buttons */}
+          <View className='mb-2'>
+            <Text style={{ color: '#411900' }} className='font-semibold mb-2 '>Date Range:</Text>
+            <DateRangePicker dateRange={dateRange} setDateRange={setDateRange}/>
           </View>
 
+          {/* ticket price slider */}
+          <Text style={{ color: '#411900' }} className='font-semibold mt-2'>Ticket price:</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#411900' }}>${range[0].toFixed(0)}</Text>
+            <Text style={{ color: '#411900' }}>{range[1] == maxCostValue ? "Max" : `$${range[1].toFixed(0)}`}</Text>
+          </View>
           <Slider
             value={range}
             onValueChange={(value) => {
@@ -81,7 +88,7 @@ export default function BottomPanel({ range, setRange, dateRange, setDateRange, 
               setRange([arr[0] ?? 0, arr[1] ?? arr[0] ?? 0]);
             }}
             minimumValue={0}
-            maximumValue={100}
+            maximumValue={maxCostValue}
             step={1}
             minimumTrackTintColor="#E2912E"
             maximumTrackTintColor="#FFF0E2"
@@ -90,11 +97,6 @@ export default function BottomPanel({ range, setRange, dateRange, setDateRange, 
             thumbTouchSize={{ width: 40, height: 40 }}
             trackStyle={{ height: 3, borderRadius: 2 }}
           />
-
-          {/* Calendar buttons */}
-          <View style={{ marginTop: 8 }}>
-            <DateRangePicker dateRange={dateRange} setDateRange={setDateRange}/>
-          </View>
 
           </BottomSheetView>
         </KeyboardAvoidingView>
