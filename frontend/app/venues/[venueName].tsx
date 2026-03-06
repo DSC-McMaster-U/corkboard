@@ -9,6 +9,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 
+// Get venue type emoji
+export const getVenueEmoji = (type: string | undefined) => {
+  const emojiMap: Record<string, string> = {
+    bar: '🍻',
+    club: '🎧',
+    theater: '🎭',
+    venue: '🎸',
+    outdoor: '🎪',
+    other: '🎤',
+  };
+  return emojiMap[type || 'other'] || '📍';
+};
+
 export default function VenuePage() {
   const { 
     venueName, 
@@ -113,20 +126,7 @@ export default function VenuePage() {
 
       fetchIsFavourite();
     }, [venueIdParam])
-);
-
-  // Get venue type emoji
-  const getVenueEmoji = (type: string | undefined) => {
-    const emojiMap: Record<string, string> = {
-      bar: '🍻',
-      club: '🎧',
-      theater: '🎭',
-      venue: '🎸',
-      outdoor: '🎪',
-      other: '🎤',
-    };
-    return emojiMap[type || 'other'] || '📍';
-  };
+  );
 
   const handleFavouriteToggle = async () => {
     if (!venueIdParam) return;

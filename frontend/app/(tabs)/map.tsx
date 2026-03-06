@@ -1,4 +1,4 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { View, Text, StatusBar, ActivityIndicator } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Marker, Callout } from "react-native-maps";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { formatEventDateTime } from "@/scripts/formatDateHelper";
 import { router } from 'expo-router';
 import { useNavBarVisibility } from "@/scripts/navBarVisibility";
 import { Colors } from "@/constants/theme";
+import { getVenueEmoji } from "../venues/[venueName]";
 const HAMILTON = { latitude: 43.2557, longitude: -79.8711, latitudeDelta: 0.04, longitudeDelta: 0.04 };
 const eventLimit = 100;
 
@@ -30,6 +31,8 @@ export default function MapScreen() {
   const [venues, setVenues] = useState<VenueData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mapRef = useRef<MapView>(null);
+
   const maxCostValue = 200;
 
   const { hideNavBar, showNavBar } = useNavBarVisibility();
@@ -123,7 +126,7 @@ export default function MapScreen() {
               venueMap.set(id, 1);
             }
           });
-          console.log('venue map: ', venueMap)
+          // console.log('venue map: ', venueMap)
 
 
           // if multiple events at same venue, just place marker for venue
@@ -132,8 +135,8 @@ export default function MapScreen() {
             else return true
           })
 
-          console.log('events: ', uniqueVenueEvents);
-          console.log('venues: ', venueList);
+          // console.log('events: ', uniqueVenueEvents);
+          // console.log('venues: ', venueList);
 
           setEvents(uniqueVenueEvents);
           setVenues(venueList)
@@ -164,24 +167,54 @@ export default function MapScreen() {
   const getRandomCoordinate = (base: number, offset: number) => base + Math.random() * offset;
 
   const handleVenuePress = (v: VenueData) => {
-      if (!v) return;
-  
-      router.push({
-        pathname: '/venues/[venueName]',
-        params: {
-          venueName: v.name,
-          venueID: v.id,
-          address: v.address,
-          created_at: null,
-          venueType: v.venue_type,
-          latitude: v.latitude,
-          longitude: v.longitude,
-          source_url: "ticketmaster.com/", // temp
-          image: null,
-          description: null,
-        },
-      });
-    };
+    if (!v) return;
+
+    router.push({
+      pathname: '/venues/[venueName]',
+      params: {
+        venueName: v.name,
+        venueID: v.id,
+        address: v.address,
+        created_at: null,
+        venueType: v.venue_type,
+        latitude: v.latitude,
+        longitude: v.longitude,
+        source_url: "ticketmaster.com/", // temp
+        image: null,
+        description: null,
+      },
+    });
+  };
+
+  const HAMILTON_BOUNDS = {
+    northEast: { latitude: 43.30, longitude: -79.80 },
+    southWest: { latitude: 43.20, longitude: -79.95 },
+  };
+  const MIN_ZOOM = 12;
+  const MAX_ZOOM = 17;
+
+  const hidePOIStyle = [
+    {
+      featureType: "poi",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    },
+    {
+      featureType: "poi.business",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    },
+    {
+      featureType: "poi.park",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    },
+    {
+      featureType: "transit",
+      elementType: "all",
+      stylers: [{ visibility: "off" }]
+    }
+  ];
 
   return (
     <SafeAreaView className="flex-1" edges={['left', 'right']}>
@@ -190,17 +223,34 @@ export default function MapScreen() {
       
       <View className="flex-1">
         {/* Map */}
-        <MapView style={{ flex: 1 }} provider={PROVIDER_GOOGLE} initialRegion={HAMILTON}>
+        <MapView style={{ flex: 1 }} 
+          provider={PROVIDER_GOOGLE} 
+          initialRegion={HAMILTON} 
+          customMapStyle={hidePOIStyle}
+          showsPointsOfInterest={false} 
+          showsBuildings={false}
+          minZoomLevel={MIN_ZOOM} 
+          maxZoomLevel={MAX_ZOOM} 
+          onRegionChangeComplete={region => {
+            // ensure the map stays within hamilton
+            let latitude = Math.max(HAMILTON_BOUNDS.southWest.latitude, Math.min(HAMILTON_BOUNDS.northEast.latitude, region.latitude));
+            let longitude = Math.max(HAMILTON_BOUNDS.southWest.longitude, Math.min(HAMILTON_BOUNDS.northEast.longitude, region.longitude));
+            if (latitude !== region.latitude || longitude !== region.longitude) {
+              mapRef.current?.animateToRegion({...region, latitude, longitude });
+            }
+          }}
+          ref={mapRef}
+        >
           {events.map((e, idx) => (   // map events with unique venues
-            <Marker
-              key={`e-${e.id}`}
+            <Marker 
+              key={`e-${e.id}`} 
               coordinate={{ 
-                latitude: typeof e.venues?.latitude === 'number'
-                  ? e.venues.latitude
-                  : getRandomCoordinate(43.25, 0.01),
-                longitude: typeof e.venues?.longitude === 'number'
-                  ? e.venues.longitude
-                  : getRandomCoordinate(-79.88, 0.01),
+              latitude: typeof e.venues?.latitude === 'number'
+                ? e.venues.latitude
+                : getRandomCoordinate(43.25, 0.01),
+              longitude: typeof e.venues?.longitude === 'number'
+                ? e.venues.longitude
+                : getRandomCoordinate(-79.88, 0.01),
               }}
               title={e.title}
               // description={`${formatEventDateTime(e.start_time)} • ${e.description}`}
@@ -221,12 +271,17 @@ export default function MapScreen() {
                   ? v.longitude
                   : getRandomCoordinate(-79.88, 0.01), //temp
               }}
-              title={v.name}
+              // title={v.name}
               onPress={() => {
                 handleVenuePress(v);
               }}
-              //image={}  switch to images for markers eventually
-            />
+            >
+              <View className="items-center justify-center">
+                <View className="rounded-full bg-slate-50 p-1 border-1 border-black shadow-2xl drop-shadow-2xl">
+                  <Text className='text-2xl'>{getVenueEmoji(v.venue_type as string)}</Text>
+                </View>
+              </View>
+            </Marker>
           ))}
         </MapView>
 
