@@ -15,13 +15,13 @@ type Props = {
   setDateRange: (r: [Date, Date]) => void;
   setSearchFilter: (r: Filter) => void;
   setSearchQuery: (r: String) => void;
+  maxCostValue: number;
 };
 
-export default function BottomPanel({ range, setRange, dateRange, setDateRange, setSearchFilter, setSearchQuery }: Props) {
+export default function BottomPanel({ range, setRange, dateRange, setDateRange, setSearchFilter, setSearchQuery, maxCostValue }: Props) {
   const snapPoints = useMemo(() => ['12%', '42%'], []);
   const [searchActive, setSearchActive] = useState(false);
   const dismissRef = useRef<() => void>(() => {});
-  const maxCostValue = 200;
 
   return (
     <BottomSheet

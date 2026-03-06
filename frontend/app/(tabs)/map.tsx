@@ -30,6 +30,7 @@ export default function MapScreen() {
   const [venues, setVenues] = useState<VenueData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const maxCostValue = 200;
 
   const { hideNavBar, showNavBar } = useNavBarVisibility();
   useEffect(() => {
@@ -48,9 +49,15 @@ export default function MapScreen() {
       setLoading(true);
       setError(null);
       try {
-          const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24*60*60*1000)).toISOString()}`,
-          { signal: controller.signal}
-        );
+          let costQuery = "";
+          if (costRange[1] == maxCostValue) {
+            costQuery = `&min_cost=${costRange[0]}`;
+          } else {
+            costQuery = `&min_cost=${costRange[0]}&max_cost=${costRange[1]}`;
+          }
+          const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}${costQuery}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
+            { signal: controller.signal }
+          );
         if (isMounted) {
           //console.log("Events received:", res.events);
           const shows = (res.events ?? [])
@@ -226,7 +233,7 @@ export default function MapScreen() {
         <EventModal visible={modalVisible} onClose={() => setModalVisible(false)} data={selectedEvent}/>
     
         {/* Bottom panel */}
-        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery}/>
+        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} maxCostValue={maxCostValue} />
 
         {/* Loading overlay */}
         {loading && (

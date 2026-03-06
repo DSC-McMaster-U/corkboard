@@ -119,6 +119,7 @@ export default function EventsScreen() {
   const [error, setError] = useState<string | null>(null); // track errors during data fetching
 
   const eventLimit = 100;
+  const maxCostValue = 200;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -128,7 +129,13 @@ export default function EventsScreen() {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
+        let costQuery = "";
+        if (costRange[1] == maxCostValue) {
+          costQuery = `&min_cost=${costRange[0]}`;
+        } else {
+          costQuery = `&min_cost=${costRange[0]}&max_cost=${costRange[1]}`;
+        }
+        const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}${costQuery}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
           { signal: controller.signal }
         );
         if (isMounted) {
@@ -268,7 +275,7 @@ export default function EventsScreen() {
         />
 
         {/* Bottom panel */}
-        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} />
+        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} maxCostValue={maxCostValue} />
         {/* Loading overlay */}
         {loading && (
           <View className="absolute inset-0 justify-center items-center bg-black/40">
