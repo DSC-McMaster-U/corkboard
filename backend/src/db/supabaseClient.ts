@@ -617,7 +617,7 @@ export const db = {
                 .single();
         },
 
-        getPersonalizedSuggestions: (userId: string) => {
+        getPersonalizedEventSuggestions: (userId: string, limit: number) => {
             return supabase
                 .from("personalized_event_suggestions")
                 .select(
@@ -650,7 +650,7 @@ export const db = {
                 .order("score", {
                     ascending: false,
                 })
-                .limit(10);
+                .limit(limit);
         },
     },
     genres: {

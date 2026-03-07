@@ -385,6 +385,134 @@ describe("POST /api/users", () => {
     });
 });
 
+describe("GET /api/users/suggested-events", () => {
+    const path = "/api/users/suggested-events";
+
+    let jwt: string | undefined = undefined;
+
+    const genres = [
+        "5a985306-82ff-4357-8bf5-3fb272ab73fc",
+        "0049ad43-60b4-4507-bf3c-87980a3d9702",
+        "867e8b7b-9f23-4cb4-b9f5-731a4ba6e92e",
+    ];
+
+    const venues = [
+        "f35b17ff-ab6a-4e42-9a6c-2688e341e945",
+        "204cc1c3-e141-4ba1-9e3f-bde3763149d2",
+        "22411a86-1b39-442c-8af8-991197838b20",
+    ];
+
+    const artists = [
+        "0209522f-69d5-4e9f-8026-f485f063cda5",
+        "07523dbf-f497-4485-a016-e004eaf978f0",
+        "2f427963-7a3b-4d10-a633-ec0de5ed2275",
+    ];
+
+    const scoreEvent = (event: any): number => {
+        let score = 0;
+
+        if (venues.includes(event.venue_id)) {
+            score += 3;
+        }
+
+        if (artists.includes(event.artist_id)) {
+            score += 5;
+        }
+
+        event.event_genres.forEach((eventGenre: any) => {
+            if (genres.includes(eventGenre.genre_id)) {
+                score += 1;
+            }
+        });
+
+        return score;
+    };
+
+    beforeAll(async () => {
+        // This user is not created by this function, so it does not need cleanup
+        jwt = (
+            await db.auth.signIn(existing_user.email, existing_user.password)
+        ).data.session?.access_token;
+        expect(jwt).toBeDefined();
+
+        genres.forEach(async (genre) => {
+            await db.users.addFavoriteGenre(existing_user.id, genre);
+        });
+
+        venues.forEach(async (venue) => {
+            await db.users.addFavoriteVenue(existing_user.id, venue);
+        });
+
+        artists.forEach(async (artist) => {
+            await db.users.addFavoriteArtist(existing_user.id, artist);
+        });
+    });
+
+    it("should return 401 if no authorization token is provided", async () => {
+        const response = await request(app).get(path);
+
+        expect(response.statusCode).toBe(401);
+        expect(response.body.error).toBeDefined();
+    });
+
+    it("should return 200 with events array for an authenticated user", async () => {
+        const response = await request(app)
+            .get(path)
+            .set("Authorization", `Bearer ${jwt}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+
+        let events = response.body.events;
+
+        expect(Array.isArray(events)).toBe(true);
+        expect(events.length).toBe(10);
+
+        // If this test is failing, it might be a false negative
+        // Currently this is here to ensure that the events being returned are actually relevant
+        expect(events[0].score).toBeGreaterThan(0);
+
+        // Verify sort and scores
+        for (let i = 0; i < events.length; i++) {
+            console.log(events[i]);
+
+            if (i > 0) {
+                expect(events[i].score).toBeLessThanOrEqual(
+                    events[i - 1].score,
+                );
+            }
+
+            expect(events[i].score).toBe(scoreEvent(events[i]));
+        }
+    });
+
+    it("should return limit the events returned", async () => {
+        const limit = 5;
+
+        const response = await request(app)
+            .get(path + `?limit=${limit}`)
+            .set("Authorization", `Bearer ${jwt}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.events.length).toBe(limit);
+    });
+
+    afterAll(() => {
+        genres.forEach(async (genre) => {
+            await db.users.removeFavoriteGenre(existing_user.id, genre);
+        });
+
+        venues.forEach(async (venue) => {
+            await db.users.removeFavoriteVenue(existing_user.id, venue);
+        });
+
+        artists.forEach(async (artist) => {
+            await db.users.removeFavoriteArtist(existing_user.id, artist);
+        });
+    });
+});
+
 afterAll(async () => {
     await cleanUpUser(existing_user.id);
 
