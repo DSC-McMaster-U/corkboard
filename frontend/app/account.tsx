@@ -11,22 +11,23 @@ type TagList = {
   placeholder: string;
   endpoint: string;
   maxDropdownHeight?: number;
+  tags: string[]; // pass in current tags
+  onAddTag?: (tag: string) => void; // adding tags update
+  onRemoveTag?: (tag: string) => void;  // removing tags update
 };
 
 // function to create artist, venue, and genre tages
-function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
-  const [tags, setTags] = useState<string[]>([]);
+function TagInput({ placeholder, endpoint, maxDropdownHeight = 100, tags, onAddTag, onRemoveTag }: TagList) {
+  //const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
 
   const [options, setOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [venuesOptions, setVenuesOptions] = useState<string[]>([]);
 
   // prevent duplicates
-  const normalizedTags = useMemo(
-    () => new Set(tags.map((t) => t.trim().toLowerCase())),
-    [tags]
-  );
+  const normalizedTags = useMemo(() => new Set(tags.map((t) => t.trim().toLowerCase())), [tags]);
 
   
   // Fetch all options from backend
@@ -36,15 +37,14 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
     async function load() {
       try {
         setLoading(true);
-        const res = await apiFetch(endpoint);
-        const data = await res.json();
+        const data = (await apiFetch(endpoint)) as any;
+        //const data = await res.json();
+        console.log("Response data:", data);
 
         // Expected shape: { genres: [...] } or { artists: [...] } or { venues: [...] }
-        const arr =
-          data.genres ??
-          data.artists ??
-          data.venues ??
-          [];
+        const arr = Array.isArray(data)
+          ? data
+          : data.genres ?? data.artists ?? data.venues ?? [];
 
         // Turn objects into strings (supports {name:"Pop"} or plain "Pop")
         const names = arr.map((x: any) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
@@ -76,18 +76,18 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
 
 
   const addTag = (value: string) => {
-  const v = value.trim();
-  if (!v) return;
-  if (normalizedTags.has(v.toLowerCase())) return;
-
-  setTags((prev) => [...prev, v]);
-  setText("");
-  setOpen(false);
-};
+    const v = value.trim();
+    if (!v || normalizedTags.has(v.toLowerCase())) return;
+    if (onAddTag) onAddTag(v);
+    setText('');
+    setOpen(false);
+  };
 
   const removeTag = (value: string) => {
-  setTags((prev) => prev.filter((t) => t !== value));
-};
+    if (onRemoveTag) onRemoveTag(value);
+  };
+
+  console.log("TagInput", { open, optionsLen: options.length, filteredLen: filtered.length, text });
 
   return (
     <View className="bg-[#F6D5B8] rounded-xl px-2 py-2">
@@ -110,10 +110,10 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
           }}
           placeholder={placeholder}
           onFocus={() => setOpen(true)}
-          onBlur={() => {
-            // delay so tapping an option still works before it closes
-            setTimeout(() => setOpen(false), 150);
-          }}
+          //onBlur={() => {
+           // //delay so tapping an option still works before it closes
+          //  setTimeout(() => setOpen(false), 150);
+          //}}
           onSubmitEditing={() => setOpen(false)} // no custom tags
           className="text-gray-800 px-2 py-1 min-w-[80px]"
           returnKeyType="done"
@@ -123,10 +123,10 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100 }: TagList) {
       {open && filtered.length > 0 && (
     <View
       className="mt-2 bg-white rounded-xl overflow-hidden"
-      style={{ maxHeight: maxDropdownHeight }}
+      style={{ maxHeight: maxDropdownHeight, zIndex: 999, elevation: 20 }}
     >
       <ScrollView
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         nestedScrollEnabled
       >
         {filtered.map((item) => (
@@ -173,6 +173,30 @@ export default function AccountPage() {
     fetchAccountData();
   }, []);
 
+  const handleUpdate = async () => {
+  if (!userData) return;
+
+  try {
+    const body = {
+      name: userData.name,
+      username: userData.username,
+      profile_picture: userData.profile_picture,
+      bio: userData.bio,
+    };
+
+    await apiFetchAuth(`api/users/${userData.id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+
+    alert("Profile updated successfully!");
+  } catch (err) {
+    console.error("Failed to update profile:", err);
+    alert("Failed to update profile");
+  }
+};
+
+ 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('authToken');
     router.replace('/(auth)/login');
@@ -187,7 +211,7 @@ export default function AccountPage() {
         {/* Header */}
         <AppHeader title="Account" showBack showProfile={false} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="always">
         {/* Avatar */}
         <View className="items-center mt-10"> 
           <View className="w-36 h-36 rounded-full bg-blue-400 items-center justify-center">
@@ -216,17 +240,127 @@ export default function AccountPage() {
           </Text>
 
           <Label text="Email Address" />
-          <Input placeholder={loading ? "Loading email..." : userData?.email || "Enter email address"} />
+          <Input placeholder={loading ? "Loading email..." : userData?.email || "Enter email address"}
+                 editable={false} 
+          />
 
           <Label text="Favourite Genres" />
-          <TagInput placeholder={userData?.genres.map(g => g.name).join(", ") || "Search genres"} endpoint={"/api/genres"} />
+          <TagInput
+            placeholder={userData?.genres.map(g => g.name).join(", ") || "Search genres"}
+            endpoint={"api/genres"}
+            tags={userData?.genres.map(g => g.name) || []} // controlled from userData
+        
+            // adding a favourite genre tag and updating backend
+            onAddTag={async (genreName) => {
+            if (!userData) return;
+
+            try {
+            // fetch all genres to get the ID
+            const allGenresBackend = await apiFetch("api/genres") as any;
+
+            const genresArray = Array.isArray(allGenresBackend)
+              ? allGenresBackend
+              : allGenresBackend.genres ?? [];
+
+            // find the genre object by name
+            const genreObj = genresArray.find((g: any) => g.name === genreName);
+            if (!genreObj) {
+              console.log("Genre not found:", genreName)
+              return;
+            }
+
+              // call backend to add it to user's favourites
+              await apiFetchAuth("api/users/addGenre", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ genreId: genreObj.id }),
+              });
+
+              const newGenre = {
+                id: String(genreObj.id),  
+                name: genreObj.name
+              };
+
+              // update frontend state immediately
+              setUserData(prev => prev ? { ...prev, genres: [...prev.genres, newGenre] } : prev);
+            } catch (err) { console.error("Failed to add genre:", err); } }}
+
+            // removing a genre tag and updating backend
+            onRemoveTag={async (genreName) => {
+              if (!userData) return;
+
+              const genreObj = userData.genres.find(g => g.name === genreName);
+              if (!genreObj) return;
+
+              // remove from backend
+              await apiFetchAuth("api/users/removeGenre", {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ genreId: genreObj.id }),
+              });
+
+              // update frontend
+              setUserData(prev =>
+                prev
+                  ? { ...prev, genres: prev.genres.filter(g => g.id !== genreObj.id) }
+                  : prev
+              );
+            }}
+          />
 
           {/* <Label text="Favourite Artists" />
           <TagInput placeholder="Search artists" endpoint={"/api/genres"} /> */}
 
           <Label text="Favourite Venues" />
-          <TagInput placeholder={userData?.venues.map(v => v.name).join(", ") || "Search venues"} endpoint={"/api/venues"} />
+          <TagInput
+            placeholder={userData?.venues.map(v => v.name).join(", ") || "Search venues"}
+            endpoint={"/api/venues"}
+            tags={userData?.venues.map(v => v.name) || []} // controlled tags
+            onAddTag={async (venueName) => {
+              if (!userData) return;
+
+              // Find venue object from backend
+              const allVenuesRes = (await apiFetch("/api/venues")) as any;
+              const venueObj = allVenuesRes.find((v: any) => v.name === venueName);
+              if (!venueObj) return;
+
+              // Call backend to add
+              await apiFetchAuth("/api/users/addVenue", {
+                method: "POST",
+                body: JSON.stringify({ venueId: venueObj.id }),
+              });
+
+              // Update local state immediately
+              setUserData(prev => prev ? { ...prev, venues: [...prev.venues, venueObj] } : prev);
+            }}
+            onRemoveTag={async (venueName) => {
+              if (!userData) return;
+
+              const venueObj = userData.venues.find(v => v.name === venueName);
+              if (!venueObj) return;
+
+              // Call backend to remove
+              await apiFetchAuth("/api/users/removeVenue", {
+                method: "DELETE",
+                body: JSON.stringify({ venueId: venueObj.id }),
+              });
+
+              // Update local state immediately
+              setUserData(prev => prev ? { ...prev, venues: prev.venues.filter(v => v.id !== venueObj.id) } : prev);
+            }}
+          />
         </View>
+
+        {/* Update button*/}
+        <TouchableOpacity className="bg-[#AE6E4E] mx-16 mt-10 py-4 rounded-full" onPress={handleUpdate}>
+          <Text className="text-center text-white font-bold text-lg">
+            Update
+          </Text>
+        </TouchableOpacity>
 
         {/* Logout Button */}
         <TouchableOpacity className="bg-orange-400 mx-16 mt-10 py-4 rounded-full" onPress={handleLogout}>
@@ -234,6 +368,7 @@ export default function AccountPage() {
             Logout
           </Text>
         </TouchableOpacity>
+
       </ScrollView>
     </View>
   );
@@ -248,15 +383,18 @@ function Input({
   placeholder,
   multiline = false,
   height = 48,
+  editable = true,
 }: {
   placeholder: string;
   multiline?: boolean;
   height?: number;
+  editable?: boolean;
 }) {
   return (
     <TextInput
       placeholder={placeholder}
       multiline={multiline}
+      editable={editable}
       className="bg-[#F6D5B8] rounded-xl px-4 text-gray-800"
       style={{ height }}
     />
