@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator} from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from "@/api/api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidPasswordBasic = (password: string) => password.length >= 8; 
@@ -92,6 +93,12 @@ export default function LoginScreen() {
   }
 
   return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000000"
+        translucent={false}
+      />
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -178,6 +185,7 @@ export default function LoginScreen() {
           </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

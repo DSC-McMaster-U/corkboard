@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from '@/api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const isValidUsername = (username: string) => {
   return /^[a-zA-Z0-9_]{3,20}$/.test(username);
@@ -116,6 +117,12 @@ export default function RegisterScreen() {
   };
   
   return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000000"
+        translucent={false}
+      />
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -255,6 +262,7 @@ export default function RegisterScreen() {
           </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -357,5 +365,15 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 12,
     lineHeight: 16,
+  },
+  safe: {
+    flex: 1,
+    backgroundColor: COLORS.frameBg,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
   },
 });
