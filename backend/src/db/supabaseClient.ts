@@ -97,7 +97,9 @@ export const db = {
             }
 
             // filter for published events by default
-            query = query.eq("status", "published").eq("ingestion_status", "success");
+            query = query
+                .eq("status", "published")
+                .eq("ingestion_status", "success");
 
             return query.limit(limit);
         },
@@ -329,10 +331,7 @@ export const db = {
 
         // remove all genres from an event
         removeAllGenres: (eventId: string) =>
-            supabase
-                .from("event_genres")
-                .delete()
-                .eq("event_id", eventId),
+            supabase.from("event_genres").delete().eq("event_id", eventId),
     },
     // artists: {
     //     getAll: (limit = 50) =>
@@ -626,6 +625,42 @@ export const db = {
                 .eq("id", userId)
                 .select()
                 .single();
+        },
+
+        getPersonalizedEventSuggestions: (userId: string, limit: number) => {
+            return supabase
+                .from("personalized_event_suggestions")
+                .select(
+                    `
+                    *,
+                    venues!venue_id (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude
+                    ),
+                    event_genres (
+                        genre_id,
+                        genres (
+                            id,
+                            name
+                        )
+                    ),
+                    artists!artist_id (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                `,
+                )
+                .eq("user_id", userId)
+                .order("score", {
+                    ascending: false,
+                })
+                .limit(limit);
         },
     },
     genres: {

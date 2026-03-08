@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import { userService } from "../services/userService.js";
 import { authService } from "../services/authService.js";
+import { parseIntOr } from "../utils/parser.js";
 
 const router = express.Router();
 
@@ -125,25 +126,27 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // GET /api/users/ - Gets user information for the authenticated user, including their favorites
-router.get("/", 
-    authService.validateToken, 
+router.get(
+    "/",
+    authService.validateToken,
     async (req: Request, res: Response) => {
-    const authenticatedUser = authService.getUser(res);
+        const authenticatedUser = authService.getUser(res);
 
-    if (authenticatedUser == undefined) {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-    }
+        if (authenticatedUser == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
 
-    userService
-        .getUserByIDWithFavorites(authenticatedUser.id)
-        .then((data) => {
-            res.status(200).json({ success: true, user: data });
-        })
-        .catch((err: Error) => {
-            res.status(500).json({ success: false, error: err.message });
-        });
-}); 
+        userService
+            .getUserByIDWithFavorites(authenticatedUser.id)
+            .then((data) => {
+                res.status(200).json({ success: true, user: data });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ success: false, error: err.message });
+            });
+    },
+);
 
 // add favorite genre
 // POST /api/users/addGenre - adds genre to user's favorites
@@ -173,8 +176,7 @@ router.post(
             .catch((err: Error) => {
                 res.status(500).json({ error: err.message });
             });
-        
-    }
+    },
 );
 
 // remove favourite genre
@@ -205,8 +207,7 @@ router.delete(
             .catch((err: Error) => {
                 res.status(500).json({ error: err.message });
             });
-        
-    }
+    },
 );
 
 // add favourite venue
@@ -237,7 +238,7 @@ router.post(
             .catch((err: Error) => {
                 res.status(500).json({ error: err.message });
             });
-    }
+    },
 );
 
 // remove favourite venue
@@ -268,9 +269,30 @@ router.delete(
             .catch((err: Error) => {
                 res.status(500).json({ error: err.message });
             });
-        
-    }
+    },
 );
 
+router.get(
+    "/suggested-events",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        let user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const limit = parseIntOr(req.query.limit as string | undefined, 10);
+
+        userService
+            .getPersonalizedEventSuggestions(String(user.id), limit)
+            .then((events) => {
+                res.status(200).json({ success: true, events: events });
+            })
+            .catch((err: Error) => {
+                res.status(500).json({ sucess: false, error: err.message });
+            });
+    },
+);
 
 export default router;
