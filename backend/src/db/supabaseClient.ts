@@ -58,7 +58,9 @@ export const db = {
                         address,
                         venue_type,
                         latitude,
-                        longitude
+                        longitude,
+                        description,
+                        link
                     ),
                     event_genres (
                         genre_id,
@@ -139,7 +141,9 @@ export const db = {
                     address,
                     venue_type,
                     latitude,
-                    longitude
+                    longitude,
+                    description,
+                    link
                 ),
                 event_genres (
                     genre_id,
@@ -381,6 +385,8 @@ export const db = {
             venue_type: string | undefined;
             latitude: number | undefined;
             longitude: number | undefined;
+            description: string | undefined;
+            link: string | undefined;
         }) => supabase.from("venues").insert(venueData).select().single(),
 
         // deletes a venue, mainly used in test cases
@@ -413,7 +419,9 @@ export const db = {
                             address,
                             venue_type,
                             latitude,
-                            longitude
+                            longitude,
+                            description,
+                            link
                         ),
                         event_genres (
                             genre_id,
@@ -485,7 +493,9 @@ export const db = {
                         id,
                         name,
                         address,
-                        venue_type
+                        venue_type,
+                        description,
+                        link
                     )
                     artists (
                         id,
