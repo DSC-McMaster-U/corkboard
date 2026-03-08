@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from "@/api/api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPasswordBasic = (password: string) => password.length >= 8; 
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,10 +15,22 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [error, setError] = useState<string | null>(null);
+
+  const emailMsg =
+    !email ? "Enter the email you registered with." : isValidEmail(email) ? null : "That email format looks wrong.";
+
+  const passwordMsg =
+    !password ? "Enter your password." : isValidPasswordBasic(password) ? null : "Password looks too short.";
+
+  const canSubmit = isValidEmail(email) && isValidPasswordBasic(password);
 
   const onLogin = async () => {
+    setError(null);
+
     if (!email.trim() || !password) {
-      Alert.alert("Missing info", "Please enter your email and password.");
+      setError("Please enter your email and password.");
       return;
     }
 
@@ -30,20 +45,19 @@ export default function LoginScreen() {
       );
 
       if (!data || data?.success === false || data?.error) {
-        const msg = data?.error || 'Login failed.';
-        Alert.alert('Login failed', msg);
-        return;
+      setError(data?.error || "Login failed.");
+      return;
       }
 
       if (!data?.jwt) {
-        Alert.alert('Login failed', 'No token returned from server.');
+        setError("Login failed: no token returned from server.");
         return;
       }
 
       await AsyncStorage.setItem('authToken', data.jwt);
       router.replace('/');
     } catch (e) {
-      Alert.alert('Network error', 'Could not reach the server. Try again.');
+      setError("Could not reach the server. Try again.");
     } finally {
       setLoading(false);
     }
@@ -60,26 +74,31 @@ export default function LoginScreen() {
       );
 
       if (!data || data?.success === false || data?.error) {
-        const msg = data?.error || 'Login failed.';
-        Alert.alert('Login failed', msg);
+        setError(data?.error || "Login failed.");
         return;
       }
 
       if (!data?.jwt) {
-        Alert.alert('Login failed', 'No token returned from server.');
+        setError("Login failed: no token returned from server.");
         return;
       }
 
       await AsyncStorage.setItem('authToken', data.jwt);
       router.replace('/');
     } catch (e) {
-      Alert.alert('Network error', 'Could not reach the server. Try again.');
+      setError("Could not reach the server. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000000"
+        translucent={false}
+      />
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -93,8 +112,11 @@ export default function LoginScreen() {
               <Ionicons name="mail-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setTouched((t) => ({ ...t, email: true }));
+                }}
+                placeholder="Email Address"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
                 autoCapitalize="none"
@@ -102,12 +124,16 @@ export default function LoginScreen() {
                 autoComplete="email"
               />
             </View>
+            {touched.email && emailMsg && <Text style={styles.helperText}>{emailMsg}</Text>}
 
             <View style={styles.inputWrap}>
               <Ionicons name="key-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setTouched((t) => ({ ...t, password: true }));
+                }}
                 placeholder="Password"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
@@ -125,12 +151,15 @@ export default function LoginScreen() {
                 />
               </Pressable>
             </View>
+            {touched.password && passwordMsg && <Text style={styles.helperText}>{passwordMsg}</Text>}
+
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Pressable
-            style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
-            onPress={onLogin}
-            disabled={loading}
-          >
+              style={[styles.primaryBtn, (!canSubmit || loading) && styles.primaryBtnDisabled]}
+              onPress={onLogin}
+              disabled={!canSubmit || loading}
+            >
             {loading ? (
               <ActivityIndicator />
             ) : (
@@ -156,6 +185,7 @@ export default function LoginScreen() {
           </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -244,5 +274,22 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     textDecorationLine: "underline",
     fontWeight: "700",
+  },
+  helperText: {
+    color: "#f1dfd6",
+    marginTop: 6,
+    marginLeft: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.95,
+  },
+  errorText: {
+    color: "#ffd6d6",
+    backgroundColor: "#7a1f1f",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    textAlign: "center",
+    fontSize: 13,
   },
 });

@@ -242,17 +242,17 @@ export default function EventsScreen() {
         </View>
 
         {/* Upload an event (hardcoded - fix later)*/}
-        <View className="px-4 mt-2 mb-4">
-          <TouchableOpacity
-            onPress={() => router.push("/events/upload")}
-            className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-3"
-          >
-            <FontAwesome name="plus" size={16} color="white" />
-            <Text className="text-white font-bold ml-2 text-base">
-              Submit an event
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <View className="px-4 mt-3 mb-5">
+        <TouchableOpacity
+          onPress={() => router.push("/events/upload")}
+          activeOpacity={0.85}
+          className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-4"
+        >
+          <Text className="text-white font-bold ml-2 text-lg">
+            + Submit an Event
+          </Text>
+        </TouchableOpacity>
+      </View>
 
         <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120, marginHorizontal: 16 }} keyboardShouldPersistTaps="handled">
           {eventList.map((event) => (

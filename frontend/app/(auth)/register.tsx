@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from '@/api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const isValidUsername = (username: string) => {
   return /^[a-zA-Z0-9_]{3,20}$/.test(username);
@@ -32,35 +33,62 @@ export default function RegisterScreen() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track "touched" so we only show messages after the user interacts
+  const [touched, setTouched] = useState({
+    username: false,
+    email: false,
+    pw: false,
+    confirmPw: false,
+  });
+
+  const pwRules = useMemo(
+    () => ({
+      length: pw.length >= 8,
+      upper: /[A-Z]/.test(pw),
+      lower: /[a-z]/.test(pw),
+      number: /[0-9]/.test(pw),
+    }),
+    [pw]
+  );
+
+  const usernameMsg = useMemo(() => {
+    if (!username) return "3-20 characters. Letters, numbers, underscores.";
+    return isValidUsername(username)
+      ? null
+      : "Must be 3-20 characters (A-Z,a-z,0-9,_).";
+  }, [username]);
+
+  const emailMsg = useMemo(() => {
+    if (!email) return "Use a valid email like name@example.com.";
+    return isValidEmail(email) ? null : "That email format looks wrong.";
+  }, [email]);
+
+  const pwMsg = useMemo(() => {
+    if (!pw) return "Use 8+ characters with upper/lowercase and a number.";
+    return isValidPassword(pw)
+      ? null
+      : "Your password still needs one or more requirements below.";
+  }, [pw]);
+
+  const confirmMsg = useMemo(() => {
+    if (!confirmPw) return "Re-type your password.";
+    return confirmPw === pw ? null : "Passwords don't match.";
+  }, [confirmPw, pw]);
+
+  const canSubmit = useMemo(() => {
+    return (
+      isValidUsername(username) &&
+      isValidEmail(email) &&
+      isValidPassword(pw) &&
+      pw === confirmPw
+    );
+  }, [username, email, pw, confirmPw]);
+
   const onRegister = async () => {
     setError(null);
   
-    if (!username || !email || !pw || !confirmPw) {
-      setError("All fields are required.");
-      return;
-    }
-  
-    if (!isValidUsername(username)) {
-      setError(
-        "Username must be 3–20 characters and contain only letters, numbers, or underscores."
-      );
-      return;
-    }
-  
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-  
-    if (!isValidPassword(pw)) {
-      setError(
-        "Password must be at least 8 characters and include uppercase, lowercase, and a number."
-      );
-      return;
-    }
-  
-    if (pw !== confirmPw) {
-      setError("Passwords do not match.");
+    if (!canSubmit) {
+      setError("Please fix the highlighted fields.");
       return;
     }
   
@@ -89,10 +117,21 @@ export default function RegisterScreen() {
   };
   
   return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000000"
+        translucent={false}
+      />
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.outer}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Register your{"\n"}account</Text>
@@ -101,19 +140,28 @@ export default function RegisterScreen() {
               <Ionicons name="person-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(text) => {
+                  setUsername(text);
+                  setTouched((t) => ({ ...t, username: true }));
+                }}
                 placeholder="Username"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
                 autoCapitalize="none"
               />
             </View>
+            {touched.username && usernameMsg && (
+              <Text style={styles.helperText}>{usernameMsg}</Text>
+            )}
 
             <View style={styles.inputWrap}>
               <Ionicons name="mail-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setTouched((t) => ({ ...t, email: true }));
+                }}
                 placeholder="Email Address"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
@@ -121,12 +169,18 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
               />
             </View>
+            {touched.email && emailMsg && (
+              <Text style={styles.helperText}>{emailMsg}</Text>
+            )}
 
             <View style={styles.inputWrap}>
               <Ionicons name="key-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={pw}
-                onChangeText={setPw}
+                onChangeText={(text) => {
+                  setPw(text);
+                  setTouched((t) => ({ ...t, pw: true }));
+                }}
                 placeholder="Password"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
@@ -144,12 +198,35 @@ export default function RegisterScreen() {
                 />
               </Pressable>
             </View>
+            {touched.pw && pwMsg && (
+              <Text style={styles.helperText}>{pwMsg}</Text>
+            )}
+
+            {touched.pw && (
+              <View style={{ marginLeft: 6, marginTop: 6 }}>
+                <Text style={styles.helperText}>
+                  {pwRules.length ? "✓" : "•"} At least 8 characters
+                </Text>
+                <Text style={styles.helperText}>
+                  {pwRules.upper ? "✓" : "•"} One uppercase letter
+                </Text>
+                <Text style={styles.helperText}>
+                  {pwRules.lower ? "✓" : "•"} One lowercase letter
+                </Text>
+                <Text style={styles.helperText}>
+                  {pwRules.number ? "✓" : "•"} One number
+                </Text>
+              </View>
+            )}
 
             <View style={styles.inputWrap}>
               <Ionicons name="key-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={confirmPw}
-                onChangeText={setConfirmPw}
+                onChangeText={(text) => {
+                  setConfirmPw(text);
+                  setTouched((t) => ({ ...t, confirmPw: true }));
+                }}
                 placeholder="Confirm Password"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
@@ -167,10 +244,17 @@ export default function RegisterScreen() {
                 />
               </Pressable>
             </View>
+            {touched.confirmPw && confirmMsg && (
+              <Text style={styles.helperText}>{confirmMsg}</Text>
+            )}
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Pressable style={styles.primaryBtn} onPress={onRegister}>
+            <Pressable
+              style={[styles.primaryBtn, !canSubmit && { opacity: 0.6 }]}
+              onPress={onRegister}
+              disabled={!canSubmit}
+            >
               <Text style={styles.primaryBtnText}>Register</Text>
             </Pressable>
 
@@ -182,7 +266,9 @@ export default function RegisterScreen() {
             </Text>
           </View>
       </View>
+      </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -198,16 +284,24 @@ const COLORS = {
 };
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#000000", // black status bar area
+  },
   page: {
     flex: 1,
     backgroundColor: COLORS.frameBg,
-    justifyContent: "center",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 40,
     alignItems: "center",
-    padding: 16,
   },
   outer: {
     width: "100%",
     maxWidth: 380,
+    paddingHorizontal: 16,
   },
   card: {
     backgroundColor: COLORS.cardBg,
@@ -218,8 +312,8 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 7,
-    alignSelf: "center",
-    width: "92%",
+    width: "100%",
+    marginBottom: 24,
   },
   cardTitle: {
     color: COLORS.textOnDark,
@@ -279,8 +373,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 13,
   },
+  helperText: {
+    color: "#f1dfd6",
+    marginTop: 6,
+    marginLeft: 6,
+    fontSize: 12,
+    lineHeight: 16,
+  },
 });
-
-
-// Make restrictions for login
-// Make entire background white 
