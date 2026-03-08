@@ -178,7 +178,7 @@ export default function MapScreen() {
 
   return (
     <SafeAreaView className="flex-1" edges={['left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="#411900" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       
       <View className="flex-1">
