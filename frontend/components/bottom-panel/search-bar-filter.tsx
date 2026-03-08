@@ -36,7 +36,7 @@ export default function SearchBarFilter({
 
   return (
     <View style={styles.wrap}>
-      <View className="flex-row items-center rounded-xl bg-[#FFF0E2] py-4 px-3">
+      <View className="flex-row items-center rounded-xl bg-[#FFF0E2] py-0 px-3">
         <Pressable
           onPress={() => setOpen(o => !o)}
           className="flex-row items-center rounded-md bg-[#F5E5D2] px-2 py-1 mr-2 border border-[#E3C9AF]"

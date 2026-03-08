@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { getImageUrl, apiFetch } from '@/api/api';
+import { apiFetch, apiFetchAuth } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface BookmarkResponse {
@@ -34,13 +34,14 @@ export default function ShowDetailsPage() {
 
   // Check if event is already bookmarked on mount
   useEffect(() => {
-    if (!event_id) return;
+    if (!event_id) {
+      console.log('No event_id provided');
+      return;
+    }
 
     const checkBookmarkStatus = async () => {
       try {
-        const response = await apiFetch<BookmarkResponse>('api/bookmarks', {
-          headers: { Authorization: 'TESTING_BYPASS' },
-        });
+        const response = await apiFetchAuth<BookmarkResponse>('api/bookmarks');
 
         const isAlreadyBookmarked = response.bookmarks.some(
           (bookmark) => bookmark.event_id === event_id
@@ -55,8 +56,10 @@ export default function ShowDetailsPage() {
   }, [event_id]);
 
   // Get the proper image URL
-  const imageUri = image ? getImageUrl(image as string) : null;
+
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+  const imgNormalized = Array.isArray(image) ? image[0] : image;
+  const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
 
   // Parse genres if passed as JSON string
   const parsedGenres: string[] = genres
@@ -101,15 +104,13 @@ export default function ShowDetailsPage() {
     setBookmarkLoading(true);
     try {
       if (isBookmarked) {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'DELETE',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
       } else {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'POST',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
       }
@@ -149,9 +150,8 @@ export default function ShowDetailsPage() {
     if (!isBookmarked && event_id) {
       setBookmarkLoading(true);
       try {
-        await apiFetch('api/bookmarks', {
+        await apiFetchAuth('api/bookmarks', {
           method: 'POST',
-          headers: { Authorization: 'TESTING_BYPASS' },
           body: JSON.stringify({ eventId: event_id }),
         });
         setIsBookmarked(true);
@@ -172,7 +172,7 @@ export default function ShowDetailsPage() {
       <View className='bg-accent'>
         <View className='relative h-[42vh]'>
           <Image
-            source={{ uri: imageUri || PLACEHOLDER_IMAGE }}
+            source={{ uri: imageUri }}
             className='w-full h-full'
             resizeMode='cover'
           />

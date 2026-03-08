@@ -30,12 +30,15 @@ type Event = {
         latitude: number | undefined;
         longitude: number | undefined;
     };
-    artists: {
-        id: string;
-        name: string;
-        bio: string | undefined;
-        image: string | undefined;
-    } | null | undefined;
+    artists:
+        | {
+              id: string;
+              name: string;
+              bio: string | undefined;
+              image: string | undefined;
+          }
+        | null
+        | undefined;
     event_genres:
         | Array<{
               genre_id: string;
@@ -77,7 +80,9 @@ describe("GET /api/events/", () => {
 
     it("should return at most the amount of events defined in by the limit", async () => {
         let limit = 2;
-        let response = await request(app).get(path + `?limit=${limit}&include_archived=true`);
+        let response = await request(app).get(
+            path + `?limit=${limit}&include_archived=true`,
+        );
 
         let count: number = response.body.count;
         let events: Array<Event> = response.body.events;
@@ -90,7 +95,8 @@ describe("GET /api/events/", () => {
     it("should only return events later than the start date range", async () => {
         let min_start_time = new Date("2026-01-01");
         let response = await request(app).get(
-            path + `?min_start_time=${min_start_time.toISOString()}&include_archived=true`
+            path +
+                `?min_start_time=${min_start_time.toISOString()}&include_archived=true`,
         );
 
         let events: Array<Event> = response.body.events;
@@ -107,7 +113,8 @@ describe("GET /api/events/", () => {
     it("should only return events before than the end date range", async () => {
         let max_start_time = new Date("2026-01-01");
         let response = await request(app).get(
-            path + `?max_start_time=${max_start_time.toISOString()}&include_archived=true`
+            path +
+                `?max_start_time=${max_start_time.toISOString()}&include_archived=true`,
         );
 
         let events: Array<Event> = response.body.events;
@@ -123,27 +130,33 @@ describe("GET /api/events/", () => {
 
     it("should only return events as or more expensive than the min cost", async () => {
         let min_cost = 15;
-        let response = await request(app).get(path + `?min_cost=${min_cost}&include_archived=true`);
+        let response = await request(app).get(
+            path + `?min_cost=${min_cost}&include_archived=true`,
+        );
 
         let events: Array<Event> = response.body.events;
 
         expect(events.length).toBeGreaterThan(0);
 
         events.forEach((event) => {
-            expect(event.cost).toBeGreaterThanOrEqual(min_cost);
+            // Null costs should be included, so they are just checked as min_cost
+            expect(event.cost ?? min_cost).toBeGreaterThanOrEqual(min_cost);
         });
     });
 
     it("should only return events as or less expensive than the max cost", async () => {
         let max_cost = 15;
-        let response = await request(app).get(path + `?max_cost=${max_cost}&include_archived=true`);
+        let response = await request(app).get(
+            path + `?max_cost=${max_cost}&include_archived=true`,
+        );
 
         let events: Array<Event> = response.body.events;
 
         expect(events.length).toBeGreaterThan(0);
 
         events.forEach((event) => {
-            expect(event.cost).toBeLessThanOrEqual(max_cost);
+            // Null costs should be included sho they are just checked as max_cost
+            expect(event.cost ?? max_cost).toBeLessThanOrEqual(max_cost);
         });
     });
 
@@ -160,7 +173,9 @@ describe("GET /api/events/", () => {
     });
 
     it("should not return empty data for required fields", async () => {
-        let response = await request(app).get(path + "?limit=100&include_archived=true");
+        let response = await request(app).get(
+            path + "?limit=100&include_archived=true",
+        );
 
         let events: Array<Event> = response.body.events;
 
@@ -186,7 +201,7 @@ describe("GET /api/events/", () => {
 
         let response = await request(app).get(
             path +
-                `?limit=100&min_cost=20&max_cost=20&min_start_time=${start_time}&max_start_time=${end_time}&include_archived=true`
+                `?limit=100&min_cost=20&max_cost=20&min_start_time=${start_time}&max_start_time=${end_time}&include_archived=true`,
         );
 
         let events: Array<Event> = response.body.events;
@@ -215,7 +230,9 @@ describe("GET /api/events/", () => {
             if (event.artists) {
                 expect(event.artists.name).toBe("Hamilton's Finest");
             }
-            expect(event.image).toBe("images/events/the-underground-maybe.jpg");
+            expect(event.image).toBe(
+                "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/images/events/the-underground-maybe.jpg",
+            );
 
             // Venue Verification
             expect(event.venues.id).toBe(

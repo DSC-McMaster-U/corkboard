@@ -145,7 +145,7 @@ export async function scrapeWebsite(url: string) {
       // const img =
       //   $a.find("img.tribe-events-calendar-list__event-featured-image").first().attr("src") ||
       //   "/images/events/mcintyrepac.jpg";
-      const img = "/images/events/mcintyre.jpg";
+      const img = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/mcintyre.jpg";
 
       const dateStartText = cleanText($a.find(".tribe-event-date-start").first().text()); 
       const start_time = parseMonthDayTimeLocal(dateStartText);

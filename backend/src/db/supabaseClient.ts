@@ -2,18 +2,39 @@
  * This is the database layer - isolates Supabase usage for team development
  */
 
-import { createClient } from "@supabase/supabase-js";
+import {
+    createClient,
+    type AdminUserAttributes,
+    type SignUpWithPasswordCredentials,
+} from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import { get } from "http";
 import { supabaseStorage } from "./supabaseStorage.js";
+import { parseEnv } from "../utils/parser.js";
 
 // Load environment variables
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
+const NODE_ENV = parseEnv(process.env.NODE_ENV);
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey =
+    NODE_ENV == "development" || NODE_ENV == "test"
+        ? process.env.SUPABASE_SERVICE_ROLE_KEY!
+        : process.env.SUPABASE_ANON_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+if (NODE_ENV == "development" || NODE_ENV == "test") {
+    supabase.auth.signUp = (credential: SignUpWithPasswordCredentials) =>
+        supabase.auth.admin
+            .createUser({
+                email: "email" in credential ? credential.email : "",
+                password: credential.password,
+                email_confirm: true,
+            })
+            .then();
+}
 
 // switch to Prisma ORM later if needed (later)
 export const db = {
@@ -24,7 +45,7 @@ export const db = {
             max_start_time: string,
             min_cost: number,
             max_cost: number,
-            includeArchived: boolean = false
+            includeArchived: boolean = false,
         ) => {
             let query = supabase
                 .from("events")
@@ -72,6 +93,9 @@ export const db = {
                     `cost.is.null,and(cost.gte.${min_cost},cost.lte.${max_cost}))`,
                 );
             }
+
+            // filter for published events by default
+            query = query.eq("status", "published").eq("ingestion_status", "success");
 
             return query.limit(limit);
         },
@@ -218,6 +242,93 @@ export const db = {
 
         deleteForVenue: (venueId: string) =>
             supabase.from("events").delete().eq("venue_id", venueId),
+
+        getUserUploadedDrafts: (
+            limit: number,
+            min_start_time: string,
+            max_start_time: string,
+            min_cost: number,
+            max_cost: number,
+        ) => {
+            let query = supabase
+                .from("events")
+                .select(
+                    `
+                    *,
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude
+                    )
+                    event_genres (
+                        genre_id,
+                        genres (
+                            id,
+                            name
+                        )
+                    )
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                    users (
+                        id,
+                        email,
+                        name,
+                        created_at,
+                        username,
+                        profile_picture,
+                        bio
+                    )
+                `,
+                )
+                .gte("start_time", min_start_time)
+                .lte("start_time", max_start_time);
+
+            // handle NULL costs: only filter by cost if user specified a range
+            const isDefaultCostRange =
+                min_cost === 0 && max_cost === Number.MAX_VALUE;
+            if (!isDefaultCostRange) {
+                // apply cost range filter
+                // billy's note: NULL costs will be excluded when filtering (standard behavior)
+                query = query.or(
+                    `cost.is.null,and(cost.gte.${min_cost},cost.lte.${max_cost}))`,
+                );
+            }
+
+            // ONLY user uploaded events
+            query = query.eq("status", "draft"); //.eq("source_type", "user")  change after db migration
+
+            return query.limit(limit);
+        },
+
+        // add a genre to an event
+        addGenre: (eventId: string, genreId: string) =>
+            supabase
+                .from("event_genres")
+                .insert({ event_id: eventId, genre_id: genreId })
+                .select()
+                .single(),
+
+        // remove a genre from an event
+        removeGenre: (eventId: string, genreId: string) =>
+            supabase
+                .from("event_genres")
+                .delete()
+                .eq("event_id", eventId)
+                .eq("genre_id", genreId),
+
+        // remove all genres from an event
+        removeAllGenres: (eventId: string) =>
+            supabase
+                .from("event_genres")
+                .delete()
+                .eq("event_id", eventId),
     },
     // artists: {
     //     getAll: (limit = 50) =>
@@ -292,6 +403,10 @@ export const db = {
                         cost,
                         status,
                         image,
+                        source_url,
+                        source_type,
+                        ingestion_status,
+                        created_at,
                         venues (
                             id,
                             name,
@@ -299,6 +414,13 @@ export const db = {
                             venue_type,
                             latitude,
                             longitude
+                        ),
+                        event_genres (
+                            genre_id,
+                            genres (
+                                id,
+                                name
+                            )
                         ),
                         artists (
                             id,
@@ -355,32 +477,23 @@ export const db = {
                 .select(
                     `
                     *,
-                    user_favorite_genres (
-                        genre_id,
-                        genres (
-                            id,
-                            name
-                        )
+                    genres (
+                        id,
+                        name
                     ),
-                    user_favorite_venues (
-                        venue_id,
-                        venues (
-                            id,
-                            name,
-                            address,
-                            venue_type
-                        )
-                    ),
-                    user_favorite_artists (
-                        artist_id,
-                        artists (
-                            id,
-                            name,
-                            bio,
-                            image
-                        )
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type
                     )
-                `
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                `,
                 )
                 .eq("id", userId)
                 .single(),
@@ -435,7 +548,7 @@ export const db = {
                 name?: string;
                 profile_picture?: string;
                 bio?: string;
-            }
+            },
         ) =>
             supabase
                 .from("users")
@@ -491,6 +604,19 @@ export const db = {
                 .delete()
                 .eq("user_id", userId)
                 .eq("artist_id", artistId),
+
+        // force deletes a user, not intended for production use, only available for test cleanup
+        forceDelete: (userId: string) => {
+            if (NODE_ENV != "test")
+                throw "forceDelete is not available outside of test environments";
+
+            return supabase
+                .from("users")
+                .delete()
+                .eq("id", userId)
+                .select()
+                .single();
+        },
     },
     genres: {
         // get all genres
@@ -512,7 +638,7 @@ export const db = {
         // get all artists
         getAll: (limit = 50) =>
             supabase.from("artists").select("*").limit(limit),
-        
+
         // get artist by ID
         getById: (artistId: string) =>
             supabase.from("artists").select("*").eq("id", artistId).single(),
@@ -527,35 +653,59 @@ export const db = {
             bio?: string | undefined;
             image?: string | undefined;
             created_at?: string | undefined;
-        }) =>
-            supabase.from("artists").insert(artistData).select().single(),
+        }) => supabase.from("artists").insert(artistData).select().single(),
 
         // add artist (with individual parameters - convenience method)
-        add: (name: string, bio?: string | undefined, image?: string | undefined, created_at?: string | undefined) =>    
-            supabase.from("artists").insert({
-                name,
-                bio,
-                image,
-                created_at
-            }).select().single(),
+        add: (
+            name: string,
+            bio?: string | undefined,
+            image?: string | undefined,
+            created_at?: string | undefined,
+        ) =>
+            supabase
+                .from("artists")
+                .insert({
+                    name,
+                    bio,
+                    image,
+                    created_at,
+                })
+                .select()
+                .single(),
     },
     storage: {
         // upload file to storage bucket
-        upload: (bucket: 'events' | 'artists' | 'users', filePath: string, file: File | Blob | Buffer, options?: { contentType?: string; cacheControl?: string; upsert?: boolean }) =>
-            supabaseStorage.storage.from(bucket).upload(filePath, file, options), 
+        upload: (
+            bucket: "events" | "artists" | "users",
+            filePath: string,
+            file: File | Blob | Buffer,
+            options?: {
+                contentType?: string;
+                cacheControl?: string;
+                upsert?: boolean;
+            },
+        ) =>
+            supabaseStorage.storage
+                .from(bucket)
+                .upload(filePath, file, options),
 
         // get public URL for a file
-        getPublicUrl: (bucket: 'events' | 'artists' | 'users', filePath: string) => {
-            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        getPublicUrl: (
+            bucket: "events" | "artists" | "users",
+            filePath: string,
+        ) => {
+            const { data } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(filePath);
             return { data: { publicUrl: data.publicUrl } };
         },
-    
+
         // delete file from storage
-        delete: (bucket: 'events' | 'artists' | 'users', filePath: string) =>
+        delete: (bucket: "events" | "artists" | "users", filePath: string) =>
             supabaseStorage.storage.from(bucket).remove([filePath]),
 
         // list files in bucket
-        list: (bucket: 'events' | 'artists' | 'users', path?: string) =>
+        list: (bucket: "events" | "artists" | "users", path?: string) =>
             supabaseStorage.storage.from(bucket).list(path),
     },
     auth: {
@@ -573,8 +723,13 @@ export const db = {
         // sign out user (optional, for future use)
         signOut: () => supabase.auth.signOut(),
 
-        // delete user by id, cascades delete to public.user table
-        deleteUser: (id: string) => supabase.auth.admin.deleteUser(id),
+        // delete user by id, does not cascade delete to public.user table
+        deleteUser: (id: string) => {
+            if (NODE_ENV != "test")
+                throw "deleteUser is not available of test environments";
+
+            supabase.auth.admin.deleteUser(id);
+        },
     },
     healthCheck: () => supabase.from("venues").select("count").limit(1), // returns the number of venues
 };

@@ -1,7 +1,9 @@
+import { ENV_VALUES, type NODE_ENVS } from "./types.js";
+
 function genericParse<T>(
     val: string | undefined,
     def: T,
-    parse: (v: string) => T
+    parse: (v: string) => T,
 ): T {
     if (val == undefined) {
         return def;
@@ -35,4 +37,16 @@ const titleCaseStr = (str: string): string =>
         })
         .join(" ");
 
-export { parseIntOr, parseFloatOr, parseDateOr, titleCaseStr };
+const parseEnv = (val: string | undefined): NODE_ENVS | undefined => {
+    if (val == undefined) {
+        return undefined;
+    }
+
+    if (!ENV_VALUES.includes(val as NODE_ENVS)) {
+        return undefined;
+    }
+
+    return val as NODE_ENVS;
+};
+
+export { parseEnv, parseIntOr, parseFloatOr, parseDateOr, titleCaseStr };

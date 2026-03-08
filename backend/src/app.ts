@@ -15,12 +15,29 @@ import userRoutes from "./routes/users.js";
 import bookmarkRoutes from "./routes/bookmarks.js";
 import genreRoutes from "./routes/genres.js";
 import imageRoutes from "./routes/images.js";
+import authRoutes from "./routes/auth.js";
 
 // Cursed way to get dir name to work with both TS and babel (jest)
 import __dirname from "./meta.cjs";
+import { parseEnv } from "./utils/parser.js";
+import { ENV_VALUES } from "./utils/types.js";
 
 // Load environment variables
 //dotenv.config();
+
+const NODE_ENV = parseEnv(process.env.NODE_ENV);
+
+if (NODE_ENV == undefined) {
+    console.error(
+        "The server cannot run with NODE_ENV value:",
+        process.env.NODE_ENV,
+        ". Please update your .env file with one of the following:\n",
+        ENV_VALUES.map((env) => "NODE_ENV=" + env).join("\n") + "\n",
+        "Unless you are launching the server to a cloud service, use development.",
+    );
+
+    throw "Server quit due to invalid environment";
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,7 +47,9 @@ const PORT = process.env.PORT || 3000;
 //const __dirname = path.dirname(__filename); // get the directory name of the current module
 
 // Middleware
-if (!process.env.TEST_ENV) {
+
+// Enable CORS in development and test environments
+if (NODE_ENV === "test" || NODE_ENV === "development") {
     app.use(cors());
 }
 
@@ -38,7 +57,7 @@ app.use(express.json());
 
 // Images can be accessed via: http://localhost:3000/images/events/event-123.jpg
 app.use(
-    express.static(path.join(path.normalize(__dirname as string), "../public"))
+    express.static(path.join(path.normalize(__dirname as string), "../public")),
 ); // backend/public/
 
 // Main page
@@ -50,6 +69,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // API Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/venues", venueRoutes);
@@ -58,9 +78,11 @@ app.use("/api/bookmarks/", bookmarkRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/images", imageRoutes);
 
-if (!process.env.TEST_ENV) {
+if (NODE_ENV != "test") {
     app.listen(PORT, () => {
+        console.log("Staring server with environment:", NODE_ENV);
         console.log(`Corkboard API running on port ${PORT}`);
+        console.log(`Auth: http://localhost:${PORT}/api/auth`);
         console.log(`Health: http://localhost:${PORT}/api/health`);
         console.log(`Events: http://localhost:${PORT}/api/events`);
         console.log(`Venues: http://localhost:${PORT}/api/venues`);
@@ -73,3 +95,4 @@ if (!process.env.TEST_ENV) {
 
 // Export to link with tests
 export default app;
+export { NODE_ENV };

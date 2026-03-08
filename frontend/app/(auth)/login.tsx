@@ -1,19 +1,83 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
+import { apiFetch } from "@/api/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const onLogin = () => {
-    // TODO: call your backend login endpoint here
-    // If success:
-    router.replace("/"); // sends user into the main app
+  const onLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("Missing info", "Please enter your email and password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await apiFetch<{ jwt?: string; success?: boolean; error?: string }>(
+        'api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: email.trim(), password }),
+        },
+      );
+
+      if (!data || data?.success === false || data?.error) {
+        const msg = data?.error || 'Login failed.';
+        Alert.alert('Login failed', msg);
+        return;
+      }
+
+      if (!data?.jwt) {
+        Alert.alert('Login failed', 'No token returned from server.');
+        return;
+      }
+
+      await AsyncStorage.setItem('authToken', data.jwt);
+      router.replace('/');
+    } catch (e) {
+      Alert.alert('Network error', 'Could not reach the server. Try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const devLogin = async () => {
+    try {
+      const data = await apiFetch<{ jwt?: string; success?: boolean; error?: string }>(
+        'api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: "johnsharrycasual@gmail.com", password: "Test1234" }),
+        },
+      );
+
+      if (!data || data?.success === false || data?.error) {
+        const msg = data?.error || 'Login failed.';
+        Alert.alert('Login failed', msg);
+        return;
+      }
+
+      if (!data?.jwt) {
+        Alert.alert('Login failed', 'No token returned from server.');
+        return;
+      }
+
+      await AsyncStorage.setItem('authToken', data.jwt);
+      router.replace('/');
+    } catch (e) {
+      Alert.alert('Network error', 'Could not reach the server. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -26,14 +90,16 @@ export default function LoginScreen() {
             <Text style={styles.cardTitle}>Login</Text>
 
             <View style={styles.inputWrap}>
-              <Ionicons name="person-outline" size={18} color={COLORS.muted} />
+              <Ionicons name="mail-outline" size={18} color={COLORS.muted} />
               <TextInput
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Username"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
                 autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
               />
             </View>
 
@@ -60,9 +126,26 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <Pressable style={styles.primaryBtn} onPress={onLogin}>
+            <Pressable
+            style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+            onPress={onLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator />
+            ) : (
               <Text style={styles.primaryBtnText}>Login</Text>
+            )}
+          </Pressable>
+
+          {__DEV__ && (
+            <Pressable
+              style={[styles.primaryBtn, { marginTop: 12, opacity: 0.85 }]}
+              onPress={() => devLogin()}
+            >
+              <Text style={styles.primaryBtnText}>Dev: Skip Login</Text>
             </Pressable>
+          )}
 
             <Text style={styles.footerText}>
               Don&apos;t have an account?{" "}
@@ -142,6 +225,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 20,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.6,
   },
   primaryBtnText: {
     color: "#ffffff",

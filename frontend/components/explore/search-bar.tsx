@@ -1,20 +1,15 @@
-import React, { useState } from 'react';
-import { View, TextInput } from 'react-native';
+import React from 'react';
+import { View, Text, Pressable } from 'react-native';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 
 export function ExploreSearch() {
-  const [searchText, setSearchText] = useState('');
-
   return (
-    <View>
-      <View className='rounded-xl bg-white py-2 px-3'>
-        <TextInput
-          className='text-sm'
-          placeholder='Search artists, songs, shows...'
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholderTextColor='#333333'
-        />
+    <Pressable onPress={() => router.push('/search')}>
+      <View className="flex-row items-center rounded-xl bg-white py-3 px-3">
+        <Feather name="search" size={16} color="#666" />
+        <Text className="text-sm text-gray-500 ml-2">Search artists, songs, shows...</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }

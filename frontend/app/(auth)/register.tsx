@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
+import { apiFetch } from '@/api/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const isValidUsername = (username: string) => {
   return /^[a-zA-Z0-9_]{3,20}$/.test(username);
@@ -30,7 +32,7 @@ export default function RegisterScreen() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onRegister = () => {
+  const onRegister = async () => {
     setError(null);
   
     if (!username || !email || !pw || !confirmPw) {
@@ -62,10 +64,28 @@ export default function RegisterScreen() {
       return;
     }
   
-    // Passed all checks — call backend here
-    // registerUser({ username, email, password: pw });
-  
-    router.replace("/"); 
+    // Passed all checks — call backend here (POST /api/users)
+    try {
+      const data = await apiFetch<{ jwt?: string; success?: boolean; error?: string }>('api/users', {
+        method: 'POST',
+        body: JSON.stringify({ email, password: pw, name: username, username }),
+      });
+
+      if (!data || data?.success === false) {
+        setError(data?.error || 'Registration failed');
+        return;
+      }
+
+      if (data?.jwt) {
+        await AsyncStorage.setItem('authToken', data.jwt);
+        router.replace('/');
+      } else {
+        // No token returned (e.g., email confirmation required) — send user to login
+        router.replace('/(auth)/login');
+      }
+    } catch (err) {
+      setError('Network or server error during registration');
+    }
   };
   
   return (

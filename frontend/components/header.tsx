@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,16 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Props = {
   title: string;
   showBack?: boolean;
+  showProfile?: boolean;
 };
 
-export function AppHeader({ title, showBack = false }: Props) {
+export function AppHeader({ title, showBack = false, showProfile = true }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
     <View style={{ backgroundColor: '#3E2723' }}>
       {/* Top brown strip */}
-      <View style={{ height: 22, backgroundColor: '#3E2723' }} />
+      <View style={{ height: insets.top, backgroundColor: '#3E2723' }} />
 
       {/* Main header */}
       <View
@@ -24,7 +25,7 @@ export function AppHeader({ title, showBack = false }: Props) {
             backgroundColor: '#AE6E4E',
             justifyContent: 'center',
             paddingHorizontal: 16,
-            paddingVertical: 10,
+            paddingVertical: 20,
         }}
         >
         <View
@@ -50,13 +51,16 @@ export function AppHeader({ title, showBack = false }: Props) {
           </Text>
 
           {/* Profile icon */}
-          <TouchableOpacity
-            onPress={() => router.push('/account')}
-            style={{ position: 'absolute', right: 0 }}
-          >
-            <Ionicons name="person-circle-outline" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+          {showProfile && (
+            <TouchableOpacity
+              onPress={() => router.push('/account')}
+              style={{ position: 'absolute', right: 0 }}
+            >
+              <Ionicons name="person-circle-outline" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
+
       </View>
     </View>
   );
