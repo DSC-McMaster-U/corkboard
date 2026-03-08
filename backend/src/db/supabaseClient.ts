@@ -58,7 +58,9 @@ export const db = {
                         address,
                         venue_type,
                         latitude,
-                        longitude
+                        longitude,
+                        description,
+                        link
                     ),
                     event_genres (
                         genre_id,
@@ -139,7 +141,9 @@ export const db = {
                     address,
                     venue_type,
                     latitude,
-                    longitude
+                    longitude,
+                    description,
+                    link
                 ),
                 event_genres (
                     genre_id,
@@ -381,6 +385,8 @@ export const db = {
             venue_type: string | undefined;
             latitude: number | undefined;
             longitude: number | undefined;
+            description: string | undefined;
+            link: string | undefined;
         }) => supabase.from("venues").insert(venueData).select().single(),
 
         // deletes a venue, mainly used in test cases
@@ -413,7 +419,9 @@ export const db = {
                             address,
                             venue_type,
                             latitude,
-                            longitude
+                            longitude,
+                            description,
+                            link
                         ),
                         event_genres (
                             genre_id,
@@ -485,7 +493,9 @@ export const db = {
                         id,
                         name,
                         address,
-                        venue_type
+                        venue_type,
+                        description,
+                        link
                     )
                     artists (
                         id,
@@ -672,6 +682,92 @@ export const db = {
                 })
                 .select()
                 .single(),
+    },
+    userEventDrafts: {
+        // get all drafts (optionally filtered by user_id)
+        getAll: (userId?: string, limit = 50) => {
+            let query = supabase.from("user_event_drafts").select("*");
+            if (userId) {
+                query = query.eq("user_id", userId);
+            }
+            return query.order("created_at", { ascending: false }).limit(limit);
+        },
+
+        // get drafts by user ID
+        getByUserId: (userId: string, limit = 50) =>
+            supabase
+                .from("user_event_drafts")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(limit),
+
+        // get draft by ID
+        getById: (draftId: string) =>
+            supabase
+                .from("user_event_drafts")
+                .select("*")
+                .eq("id", draftId)
+                .single(),
+
+        // create a new draft
+        create: (draftData: {
+            title: string;
+            description: string;
+            start_time: string;
+            cost: number;
+            user_id: string;
+            source_url?: string | null;
+            image?: string | null;
+            venue_id?: string | null;
+            venue_name?: string | null;
+            venue_address?: string | null;
+            venue_type?: string | null;
+            venue_latitude?: number | null;
+            venue_longitude?: number | null;
+            artist_id?: string | null;
+            artist_name?: string | null;
+            artist_bio?: string | null;
+            artist_image?: string | null;
+        }) =>
+            supabase
+                .from("user_event_drafts")
+                .insert(draftData)
+                .select()
+                .single(),
+
+        // update a draft by ID
+        updateById: (
+            draftId: string,
+            patch: {
+                title?: string;
+                description?: string;
+                start_time?: string;
+                cost?: number;
+                source_url?: string | null;
+                image?: string | null;
+                venue_id?: string | null;
+                venue_name?: string | null;
+                venue_address?: string | null;
+                venue_type?: string | null;
+                venue_latitude?: number | null;
+                venue_longitude?: number | null;
+                artist_id?: string | null;
+                artist_name?: string | null;
+                artist_bio?: string | null;
+                artist_image?: string | null;
+            },
+        ) =>
+            supabase
+                .from("user_event_drafts")
+                .update(patch)
+                .eq("id", draftId)
+                .select()
+                .single(),
+
+        // delete a draft by ID
+        deleteById: (draftId: string) =>
+            supabase.from("user_event_drafts").delete().eq("id", draftId),
     },
     storage: {
         // upload file to storage bucket
