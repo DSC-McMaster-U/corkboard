@@ -12,6 +12,7 @@
 - `user_favorite_genres` - User favorite genres (many-to-many)
 - `user_favorite_venues` - User favorite venues (many-to-many)
 - `user_favorite_artists` - User favorite artists (many-to-many)
+- `user_event_drafts` - User-created event drafts before publication
 
 ## Enum Types
 
@@ -81,18 +82,16 @@
 **Note:** The old `artist` VARCHAR column was replaced with `artist_id` in migration 011
 
 ### `image` (varchar(255), nullable)
-**Purpose:** Stores local file path to event image.
+**Purpose:** Stores Supabase Storage URL for event image.
 
-**Format:** Relative path from `backend/public/` directory (e.g. `"images/events/event-123.jpg"`)
-
-**Access:** Frontend accesses via `http://localhost:3000/images/events/event-123.jpg` (once static file serving is configured)
+**Format:** Full Supabase Storage public URL (e.g. `"https://<project-id>.supabase.co/storage/v1/object/public/events/event-123.jpg"`)
 
 **Examples:**
-- `"images/events/the-casbah.jpg"`
-- `"images/events/jazz-night.png"`
+- `"https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/the-casbah.jpg"`
+- `"https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/jazz-night.png"`
 - `NULL` (for events without images)
 
-**Note:** Images are stored locally in the backend's public directory. Static file serving will be configured in the API branch.
+**Note:** Images are stored in Supabase Storage. Migration 015 converted existing relative paths to full Supabase Storage URLs.
 
 ### `archived` (boolean, NOT NULL, default: false)
 **Purpose:** Indicates whether an event has been archived (typically for past events).
@@ -134,6 +133,27 @@
 
 **Note:** Both fields are nullable to allow venues without coordinates (can be populated later via geocoding).
 
+## Venues Table - Additional Fields
+
+### `description` (varchar(255), nullable)
+**Purpose:** Venue description or bio.
+
+**Examples:**
+- `"A cozy bar in downtown Hamilton featuring live music every weekend"`
+- `NULL` (no description provided)
+
+**Note:** Added in migration 017.
+
+### `link` (varchar(255), nullable)
+**Purpose:** Venue website or social media link.
+
+**Examples:**
+- `"https://thecasbah.ca"`
+- `"https://www.facebook.com/thecasbah"`
+- `NULL` (no link provided)
+
+**Note:** Added in migration 017.
+
 ## Users Table - Account Fields
 
 ### `username` (varchar(100), nullable, UNIQUE)
@@ -145,15 +165,15 @@
 - `NULL` (optional field)
 
 ### `profile_picture` (varchar(255), nullable)
-**Purpose:** URL or path to user profile picture.
+**Purpose:** Supabase Storage URL for user profile picture.
 
-**Format:** Relative path from `backend/public/` directory (e.g. `"images/users/testuser.jpg"`)
-
-**Access:** Frontend accesses via `http://localhost:3000/images/users/testuser.jpg`
+**Format:** Full Supabase Storage public URL (e.g. `"https://<project-id>.supabase.co/storage/v1/object/public/users/testuser.jpg"`)
 
 **Examples:**
-- `"images/users/testuser.jpg"`
+- `"https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/users/testuser.jpg"`
 - `NULL` (no profile picture)
+
+**Note:** Migration 015 converted existing relative paths to full Supabase Storage URLs.
 
 ### `bio` (text, nullable)
 **Purpose:** User biography/description.
@@ -170,7 +190,7 @@
 - `id` (uuid, PRIMARY KEY) - Unique identifier
 - `name` (varchar(255), UNIQUE, NOT NULL) - Artist name
 - `bio` (text, nullable) - Artist biography
-- `image` (varchar(255), nullable) - Profile picture path
+- `image` (varchar(255), nullable) - Supabase Storage URL for artist image (e.g. `"https://<project-id>.supabase.co/storage/v1/object/public/artists/artist-123.jpg"`)
 - `created_at` (timestamp) - Creation timestamp
 
 **Relationships:**
@@ -208,6 +228,66 @@
 - `created_at` (timestamp)
 
 **Primary Key:** (`user_id`, `artist_id`)
+
+## User Event Drafts Table
+
+**Purpose:** Stores event drafts created by users before they are published. This table allows users to save incomplete event information and either reference existing venues/artists or specify new ones to be created.
+
+### Core Fields
+
+- `id` (uuid, PRIMARY KEY) - Unique identifier
+- `title` (varchar(255), NOT NULL) - Event title
+- `description` (varchar(255), NOT NULL) - Event description
+- `start_time` (timestamptz, NOT NULL) - Event start time (timezone-aware)
+- `cost` (numeric(10, 2), NOT NULL) - Event cost
+- `created_at` (timestamp, default: NOW()) - Draft creation timestamp
+- `user_id` (uuid, NOT NULL, FK to `users.id` ON DELETE CASCADE) - User who created the draft
+
+### Optional Fields
+
+- `source_url` (text, nullable) - Source URL for the event
+- `image` (varchar(255), nullable) - Event image URL (Supabase Storage)
+
+### Venue Fields (Dual Approach)
+
+**Foreign Key Reference:**
+- `venue_id` (uuid, nullable, FK to `venues.id` ON DELETE SET NULL) - Reference to existing venue
+
+**Denormalized Fields (for new venues):**
+- `venue_name` (varchar(255), nullable) - Name of new venue to create
+- `venue_address` (text, nullable) - Address of new venue
+- `venue_type` (venue_type_enum, nullable) - Type of new venue
+- `venue_latitude` (numeric(10, 8), nullable) - Latitude coordinate
+- `venue_longitude` (numeric(11, 8), nullable) - Longitude coordinate
+
+**Usage:** If `venue_id` is provided, use the existing venue. Otherwise, use the denormalized fields to create a new venue when publishing.
+
+### Artist Fields (Dual Approach)
+
+**Foreign Key Reference:**
+- `artist_id` (uuid, nullable, FK to `artists.id` ON DELETE SET NULL) - Reference to existing artist
+
+**Denormalized Fields (for new artists):**
+- `artist_name` (varchar(255), nullable) - Name of new artist to create
+- `artist_bio` (text, nullable) - Biography of new artist
+- `artist_image` (varchar(255), nullable) - Image URL for new artist
+
+**Usage:** If `artist_id` is provided, use the existing artist. Otherwise, use the denormalized fields to create a new artist when publishing.
+
+### Relationships
+
+- Many-to-one with `users` (via `user_id`)
+- Optional many-to-one with `venues` (via `venue_id`)
+- Optional many-to-one with `artists` (via `artist_id`)
+
+### Indexes
+
+- `idx_user_event_drafts_user_id` - Optimize queries for user's drafts
+- `idx_user_event_drafts_venue_id` - Optimize venue lookups
+- `idx_user_event_drafts_artist_id` - Optimize artist lookups
+- `idx_user_event_drafts_created_at` - Optimize sorting by creation date
+
+**Note:** Created in migration 018.
 
 ## Constraints
 
@@ -293,6 +373,26 @@
 - **Column:** `name`
 - **Purpose:** Optimize artist lookups by name
 
+### `idx_user_event_drafts_user_id`
+- **Table:** `user_event_drafts`
+- **Column:** `user_id`
+- **Purpose:** Optimize queries for user's drafts
+
+### `idx_user_event_drafts_venue_id`
+- **Table:** `user_event_drafts`
+- **Column:** `venue_id`
+- **Purpose:** Optimize venue lookups in drafts
+
+### `idx_user_event_drafts_artist_id`
+- **Table:** `user_event_drafts`
+- **Column:** `artist_id`
+- **Purpose:** Optimize artist lookups in drafts
+
+### `idx_user_event_drafts_created_at`
+- **Table:** `user_event_drafts`
+- **Column:** `created_at`
+- **Purpose:** Optimize sorting drafts by creation date
+
 ## Sample Data
 
 - 7 venues (4 initial + 3 new from real events)
@@ -318,6 +418,11 @@ All schema changes are tracked in `supabase/migrations/`:
 - `011_add_artist_id_to_events.sql` - Replace `artist` VARCHAR column with `artist_id` FK to `artists` table for normalization
 - `012_add_user_account_sample_data.sql` - Add sample user profiles and favorites for testing
 - `013_add_archived_column_to_events.sql` - Add `archived` boolean column to events table for handling past events
+- `014_add_auth_trigger.sql` - Add trigger to automatically create user record in `users` table when auth user is created
+- `015_convert_image_paths_to_supabase_urls.sql` - Convert relative image paths to full Supabase Storage URLs in `events.image`, `artists.image`, and `users.profile_picture`
+- `016_add_user_to_source_type_enum.sql` - Add `'user'` value to `source_type_enum` for user-created events
+- `017_add_description_and_link_to_venues.sql` - Add `description` and `link` columns to venues table
+- `018_create_user_event_drafts_table.sql` - Create `user_event_drafts` table for storing user-created event drafts
 
 **To apply a migration:**
 1. Review migration file
