@@ -108,6 +108,11 @@ export const eventService = {
         if (error) throw error;
         return data ?? [];
     },
+    getEventByID: async (eventId: string) => {
+        const { data, error } = await db.events.getById(eventId);
+        if (error) throw error;
+        return data;
+    },
     updateEventByID: async (
         id: string,
         patch: {

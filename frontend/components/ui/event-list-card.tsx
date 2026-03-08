@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, Keyboard } from 'react-native';
 import { router } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { FontAwesome, Feather } from '@expo/vector-icons';
 import { EventData } from '@/constants/types';
-import { formatEventDateTimeToDate } from '@/scripts/formatDateHelper';
+import { formatEventDateTimeToDate, formatEventDateTimeToTime } from '@/scripts/formatDateHelper';
 
 export interface EventListCardProps {
     event: EventData;
@@ -15,10 +15,16 @@ export function EventListCard({ event }: EventListCardProps) {
     const imageUri = event.image || PLACEHOLDER_IMAGE;
     const venueName = event.venues?.name || 'Unspecified venue';
     const artist = event.artist || 'Unspecified artist';
+    const genres = event.event_genres?.map(g => g.genres.name) || [];
+    const costLabel =
+        event.cost == null
+            ? 'Price TBA'
+            : event.cost === 0
+                ? 'Free'
+                : `$${event.cost.toFixed(2)}`;
 
     const handlePress = () => {
         Keyboard.dismiss();
-        const genreNames = event.event_genres?.map((g) => g.genres.name) || [];
         router.push({
             pathname: '/shows/[showName]',
             params: {
@@ -35,7 +41,7 @@ export function EventListCard({ event }: EventListCardProps) {
                 venue_longtidue: event.venues?.longitude?.toString() || '',
                 venue_type: event.venues?.venue_type || '',
                 source_url: event.source_url || '',
-                genres: JSON.stringify(genreNames),
+                genres: JSON.stringify(genres),
                 event_id: event.id.toString(),
             },
         });
@@ -44,36 +50,72 @@ export function EventListCard({ event }: EventListCardProps) {
     return (
         <TouchableOpacity
             onPress={handlePress}
-            activeOpacity={0.8}
-            className="mb-3"
+            activeOpacity={0.85}
+            className="mb-4 w-full"
         >
-            <View className="flex-row bg-[#9A6348] rounded-3xl p-4 shadow-sm border border-black/5">
-                <View className="shadow-sm">
-                    <Image
-                        source={{ uri: imageUri }}
-                        style={{ width: 80, height: 80, borderRadius: 20, marginRight: 16 }}
-                        resizeMode="cover"
-                    />
-                </View>
-                <View className="flex-1 justify-center py-1">
-                    <Text className="text-white text-[15px] font-bold mb-0.5" numberOfLines={1}>
+            <View className="flex-row bg-[#9A6348] rounded-xl p-2 shadow-lg border border-black/10 w-full">
+                {/* image */}
+                <Image source={{ uri: imageUri}} className='w-[32%] h-full rounded-md mr-2' resizeMode='cover' />
+                {/* event details */}
+                <View className="flex-1 justify-between py-1">
+                    <Text className="text-white text-[16px] font-bold mb-1" numberOfLines={2}>
                         {event.title}
                     </Text>
-                    <Text className="text-neutral-200 text-[13px] font-medium mb-2" numberOfLines={1}>
-                        {artist}
-                    </Text>
-                    <View className="flex-row items-center">
-                        <View className="bg-white/20 px-2 py-1 rounded-lg flex-row items-center">
-                            <Feather name="map-pin" size={10} color="white" />
-                            <Text className="text-white text-[10px] font-bold ml-1 uppercase tracking-tight" numberOfLines={1}>
-                                {venueName.split(' ')[0]}
-                            </Text>
-                        </View>
-                        <Text className="text-white/30 mx-2 text-[10px]">•</Text>
-                        <Text className="text-neutral-300 text-[11px] font-semibold">
-                            {formatEventDateTimeToDate(event.start_time)}
+                    {artist !== 'Unspecified artist' && (
+                        <Text className="text-neutral-200 text-[13px] font-medium mb-2" numberOfLines={1}>
+                            {artist}
+                        </Text>
+                    )}
+
+                    {/* venue */}
+                    <View className='flex-row items-center mt-0.5'>
+                        <FontAwesome name="map-marker" size={12} color="white" />
+                        <Text className='text-white text-sm ml-1.5' numberOfLines={1}>
+                            {venueName}
                         </Text>
                     </View>
+
+                    {/* ticket price */}
+                    {event.cost !== undefined && (
+                        <View className='flex-row items-center mt-0.5'>
+                            <FontAwesome name="ticket" size={12} color="white" />
+                            <Text className='text-white text-sm ml-1.5' numberOfLines={1}>
+                                {costLabel}
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* date time chips */}
+                    <View className="flex-row items-center mt-0.5">
+                        <View className="flex-row items-center bg-white/10 rounded-full px-2 py-0.5 mr-1.5">
+                            <FontAwesome name="calendar" size={11} color="#fff" />
+                            <Text className="text-white text-xs ml-1">
+                            {formatEventDateTimeToDate(event.start_time)}
+                            </Text>
+                        </View>
+                        <View className="flex-row items-center bg-white/10 rounded-full px-2 py-0.5">
+                            <FontAwesome name="clock-o" size={11} color="#fff" />
+                            <Text className="text-white text-xs ml-1">
+                            {formatEventDateTimeToTime(event.start_time)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    
+
+                    {/* genre tags */}
+                    {genres.length > 0 && (
+                        <View className="flex-row flex-wrap mt-2">
+                            {genres.map((genre, idx) => (
+                                <View
+                                    key={genre + idx}
+                                    className="bg-white/15 px-2 py-0.5 rounded mr-1 mb-1"
+                                >
+                                    <Text className="text-white text-xs font-semibold" numberOfLines={1}>{genre}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
                 </View>
             </View>
         </TouchableOpacity>

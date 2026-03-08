@@ -35,6 +35,8 @@ router.post("/", async (req: Request, res: Response) => {
         address = undefined,
         latitude = undefined,
         longitude = undefined,
+        description = undefined,
+        link = undefined,
     } = req.body;
 
     if (name == undefined) {
@@ -44,7 +46,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Call Service
     venueService
-        .createVenue(name, venue_type, address, latitude, longitude)
+        .createVenue(name, venue_type, address, latitude, longitude, description, link)
         .then((venue) => {
             res.status(200).json({ id: venue["id"], success: true });
         })

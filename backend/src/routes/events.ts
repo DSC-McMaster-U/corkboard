@@ -125,6 +125,24 @@ router.post("/", async (req: Request, res: Response) => {
         });
 });
 
+router.get("/:id", async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    if (!id) {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    eventService
+        .getEventByID(id)
+        .then((event) => {
+            res.status(200).json({ event });
+        })
+        .catch((err) => {
+            res.status(404).json({ error: "Event not found" });
+        });
+});
+
 router.post("/updateEvent", async (req: Request, res: Response) => {
     req.body = req.body ?? {};
 

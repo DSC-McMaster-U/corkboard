@@ -8,6 +8,7 @@ import type { EventData, EventList, GenreData, Genre } from "@/constants/types";
 import { formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
 import { apiFetch } from "@/api/api";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EventListCard } from "@/components/ui/event-list-card";
 
 type InfoBoxProps = {
   event: EventData;
@@ -95,7 +96,7 @@ function InfoBox({ event, onPress }: InfoBoxProps) {
         </View>
 
         {/* right side - image */}
-        <Image source={{ uri: imageUri }} className='w-[32%] h-full rounded-md' resizeMode="cover" />
+        <Image source={{ uri: imageUri }} className='w-[32%] h-full rounded-lg' resizeMode="cover" />
       </View>
     </TouchableOpacity>
   );
@@ -107,7 +108,7 @@ export default function EventsScreen() {
   const currentDate: Date = new Date();
   const defaultEndDate: Date = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);  // 2 weeks in the future
 
-  const [costRange, setCostRange] = useState<[number, number]>([10, 70]);  // set up state for ticket price slider bar
+  const [costRange, setCostRange] = useState<[number, number]>([0, 200]);  // set up state for ticket price slider bar
   const [dateRange, setDateRange] = useState<[Date, Date]>([currentDate, defaultEndDate]);  // state for date range -> bottom panel
   const [searchFilter, setSearchFilter] = useState<Filter>("none")  // state for search filter ("genre", "artist", "venue", "none")
   const [searchQuery, setSearchQuery] = useState<String>("")    // state for search query
@@ -118,6 +119,7 @@ export default function EventsScreen() {
   const [error, setError] = useState<string | null>(null); // track errors during data fetching
 
   const eventLimit = 100;
+  const maxCostValue = 200;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -127,7 +129,13 @@ export default function EventsScreen() {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
+        let costQuery = "";
+        if (costRange[1] == maxCostValue) {
+          costQuery = `&min_cost=${costRange[0]}`;
+        } else {
+          costQuery = `&min_cost=${costRange[0]}&max_cost=${costRange[1]}`;
+        }
+        const res = await apiFetch<EventList>(`api/events?limit=${eventLimit}${costQuery}&min_start_time=${dateRange[0].toISOString()}&max_start_time=${(new Date(dateRange[1].getTime() + 24 * 60 * 60 * 1000)).toISOString()}`,
           { signal: controller.signal }
         );
         if (isMounted) {
@@ -234,28 +242,29 @@ export default function EventsScreen() {
         </View>
 
         {/* Upload an event (hardcoded - fix later)*/}
-        <View className="px-4 mt-2 mb-4">
-          <TouchableOpacity
-            onPress={() => router.push("/events/upload")}
-            className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-3"
-          >
-            <FontAwesome name="plus" size={16} color="white" />
-            <Text className="text-white font-bold ml-2 text-base">
-              Submit an event
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <View className="px-4 mt-3 mb-5">
+        <TouchableOpacity
+          onPress={() => router.push("/events/upload")}
+          activeOpacity={0.85}
+          className="flex-row items-center justify-center bg-[#E2912E] rounded-xl py-4"
+        >
+          <Text className="text-white font-bold ml-2 text-lg">
+            + Submit an Event
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120 }}>
+        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120, marginHorizontal: 16 }} keyboardShouldPersistTaps="handled">
           {eventList.map((event) => (
-            <InfoBox
-              key={event.id}
-              event={event}
-              onPress={() => {
-                setSelectedEvent(event);
-                setModalVisible(true);
-              }}
-            />
+            <EventListCard key={event.id} event={event} />
+            // <InfoBox
+            //   key={event.id}
+            //   event={event}
+            //   onPress={() => {
+            //     setSelectedEvent(event);
+            //     setModalVisible(true);
+            //   }}
+            // />
           ))}
         </ScrollView>
 
@@ -266,7 +275,7 @@ export default function EventsScreen() {
         />
 
         {/* Bottom panel */}
-        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} />
+        <BottomPanel range={costRange} setRange={setCostRange} dateRange={dateRange} setDateRange={setDateRange} setSearchFilter={setSearchFilter} setSearchQuery={setSearchQuery} maxCostValue={maxCostValue} />
         {/* Loading overlay */}
         {loading && (
           <View className="absolute inset-0 justify-center items-center bg-black/40">
