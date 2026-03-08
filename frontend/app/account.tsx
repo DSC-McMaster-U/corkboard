@@ -7,98 +7,86 @@ import { UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type TagList = {
+type TagProps<T> = {
   placeholder: string;
   endpoint: string;
   maxDropdownHeight?: number;
-  tags: string[]; // pass in current tags
-  onAddTag?: (tag: string) => void; // adding tags update
-  onRemoveTag?: (tag: string) => void;  // removing tags update
+  tags: T[]; // pass in current tags
+  getTagName: (tag: T) => string; // how to display tag
+  onAddTag?: (tag: T) => void; // adding tags update
+  onRemoveTag?: (tag: T) => void;  // removing tags update
 };
 
 // function to create artist, venue, and genre tages
-function TagInput({ placeholder, endpoint, maxDropdownHeight = 100, tags, onAddTag, onRemoveTag }: TagList) {
+function TagInput<T>({ placeholder, endpoint, maxDropdownHeight = 100, tags, getTagName, onAddTag, onRemoveTag }: TagProps<T>) {
   //const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
 
-  const [options, setOptions] = useState<string[]>([]);
+  const [options, setOptions] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
-  const [venuesOptions, setVenuesOptions] = useState<string[]>([]);
 
   // prevent duplicates
-  const normalizedTags = useMemo(() => new Set(tags.map((t) => t.trim().toLowerCase())), [tags]);
+  const normalizedTags = useMemo(() => new Set(tags.map(t => getTagName(t).toLowerCase())), [tags]);
 
   
   // Fetch all options from backend
-  useEffect(() => {
+    useEffect(() => {
     let cancelled = false;
+     async function load() {
+    try {
+      setLoading(true);
 
-    async function load() {
-      try {
-        setLoading(true);
-        const data = (await apiFetch(endpoint)) as any;
-        //const data = await res.json();
-        console.log("Response data:", data);
+      const data = await apiFetch(endpoint) as any; 
 
-        // Expected shape: { genres: [...] } or { artists: [...] } or { venues: [...] }
-        const arr = Array.isArray(data)
-          ? data
-          : data.genres ?? data.artists ?? data.venues ?? [];
+      // Determine which array exists
+      const arr: T[] = Array.isArray(data)
+        ? data
+        : (data.genres ?? data.venues ?? data.artists ?? []) as T[];
 
-        // Turn objects into strings (supports {name:"Pop"} or plain "Pop")
-        const names = arr.map((x: any) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
-
-        if (!cancelled) setOptions(names);
-      } catch (e) {
-        if (!cancelled) setOptions([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      if (!cancelled) setOptions(arr);
+    } catch (err) {
+      if (!cancelled) setOptions([]);
+    } finally {
+      if (!cancelled) setLoading(false);
     }
+  }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [endpoint]);
+  load();
+  return () => {
+    cancelled = true;
+  };
+}, [endpoint]);
 
-  // filter options based on user's input text
+  // Filter options
   const filtered = useMemo(() => {
-  const q = text.trim().toLowerCase();
+    const q = text.trim().toLowerCase();
+    return options
+      .filter(o => getTagName(o).toLowerCase().includes(q))
+      .filter(o => !normalizedTags.has(getTagName(o).toLowerCase()));
+  }, [text, options, normalizedTags]);
 
-  const base = q
-    ? options.filter((o) => o.toLowerCase().includes(q))
-    : options;
-
-  return base.filter((o) => !normalizedTags.has(o.toLowerCase()));
-}, [text, options, normalizedTags]);
-
-
-  const addTag = (value: string) => {
-    const v = value.trim();
-    if (!v || normalizedTags.has(v.toLowerCase())) return;
-    if (onAddTag) onAddTag(v);
-    setText('');
+  const addTag = (tag: T) => {
+    //if (normalizedTags.has(getTagName(tag).toLowerCase())) return;
+    if (onAddTag) onAddTag(tag);
+    setText("");
     setOpen(false);
   };
 
-  const removeTag = (value: string) => {
-    if (onRemoveTag) onRemoveTag(value);
+  const removeTag = (tag: T) => {
+    if (onRemoveTag) onRemoveTag(tag);
   };
-
-  console.log("TagInput", { open, optionsLen: options.length, filteredLen: filtered.length, text });
 
   return (
     <View className="bg-[#F6D5B8] rounded-xl px-2 py-2">
       <View className="flex-row flex-wrap items-center">
         {tags.map(tag => (
           <TouchableOpacity
-            key={tag}
+            key={(tag as any).id}
             onPress={() => removeTag(tag)}
             className="bg-[#5A1E14] px-3 py-1 rounded-full mr-2 mb-2"
           >
-            <Text className="text-white text-xs">{tag} ✕</Text>
+            <Text className="text-white text-xs">{getTagName(tag)} ✕</Text>
           </TouchableOpacity>
         ))}
 
@@ -131,11 +119,11 @@ function TagInput({ placeholder, endpoint, maxDropdownHeight = 100, tags, onAddT
       >
         {filtered.map((item) => (
           <TouchableOpacity
-            key={item}
+            key={(item as any).id}
             onPress={() => addTag(item)}
             className="px-3 py-3 border-b border-gray-200"
           >
-            <Text className="text-sm text-gray-800">{item}</Text>
+            <Text className="text-sm text-gray-800">{getTagName(item)}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -246,69 +234,19 @@ export default function AccountPage() {
 
           <Label text="Favourite Genres" />
           <TagInput
-            placeholder={userData?.genres.map(g => g.name).join(", ") || "Search genres"}
+            placeholder={"Search genres"}
             endpoint={"api/genres"}
-            tags={userData?.genres.map(g => g.name) || []} // controlled from userData
+            tags={userData?.genres ?? [] }
+            getTagName = {g => g.name}
         
             // adding a favourite genre tag and updating backend
-            onAddTag={async (genreName) => {
-            if (!userData) return;
-
-            try {
-            // fetch all genres to get the ID
-            const allGenresBackend = await apiFetch("api/genres") as any;
-
-            const genresArray = Array.isArray(allGenresBackend)
-              ? allGenresBackend
-              : allGenresBackend.genres ?? [];
-
-            // find the genre object by name
-            const genreObj = genresArray.find((g: any) => g.name === genreName);
-            if (!genreObj) {
-              console.log("Genre not found:", genreName)
-              return;
-            }
-
-              // call backend to add it to user's favourites
-              await apiFetchAuth("api/users/addGenre", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ genreId: genreObj.id }),
-              });
-
-              const newGenre = {
-                id: String(genreObj.id),  
-                name: genreObj.name
-              };
-
-              // update frontend state immediately
-              setUserData(prev => prev ? { ...prev, genres: [...prev.genres, newGenre] } : prev);
-            } catch (err) { console.error("Failed to add genre:", err); } }}
-
-            // removing a genre tag and updating backend
-            onRemoveTag={async (genreName) => {
-              if (!userData) return;
-
-              const genreObj = userData.genres.find(g => g.name === genreName);
-              if (!genreObj) return;
-
-              // remove from backend
-              await apiFetchAuth("api/users/removeGenre", {
-                method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ genreId: genreObj.id }),
-              });
-
-              // update frontend
-              setUserData(prev =>
-                prev
-                  ? { ...prev, genres: prev.genres.filter(g => g.id !== genreObj.id) }
-                  : prev
-              );
+            onAddTag={async (genre) => {
+              await apiFetchAuth("api/users/addGenre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genreId: genre.id }) });
+              setUserData(prev => prev ? { ...prev, genres: [...prev.genres, genre] } : prev);
+            }}
+            onRemoveTag={async (genre) => {
+              await apiFetchAuth("api/users/removeGenre", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genreId: genre.id }) });
+              setUserData(prev => prev ? { ...prev, genres: prev.genres.filter(g => g.id !== genre.id) } : prev);
             }}
           />
 
@@ -317,40 +255,17 @@ export default function AccountPage() {
 
           <Label text="Favourite Venues" />
           <TagInput
-            placeholder={userData?.venues.map(v => v.name).join(", ") || "Search venues"}
-            endpoint={"/api/venues"}
-            tags={userData?.venues.map(v => v.name) || []} // controlled tags
-            onAddTag={async (venueName) => {
-              if (!userData) return;
-
-              // Find venue object from backend
-              const allVenuesRes = (await apiFetch("/api/venues")) as any;
-              const venueObj = allVenuesRes.find((v: any) => v.name === venueName);
-              if (!venueObj) return;
-
-              // Call backend to add
-              await apiFetchAuth("/api/users/addVenue", {
-                method: "POST",
-                body: JSON.stringify({ venueId: venueObj.id }),
-              });
-
-              // Update local state immediately
-              setUserData(prev => prev ? { ...prev, venues: [...prev.venues, venueObj] } : prev);
+            placeholder={"Search venues"}
+            endpoint={"api/venues"}
+            tags={userData?.venues ?? [] }
+            getTagName = {v => v.name}
+            onAddTag={async (venue) => {
+              await apiFetchAuth("api/users/addVenue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ venueId: venue.id }) });
+              setUserData(prev => prev ? { ...prev, venues: [...prev.venues, venue] } : prev);
             }}
-            onRemoveTag={async (venueName) => {
-              if (!userData) return;
-
-              const venueObj = userData.venues.find(v => v.name === venueName);
-              if (!venueObj) return;
-
-              // Call backend to remove
-              await apiFetchAuth("/api/users/removeVenue", {
-                method: "DELETE",
-                body: JSON.stringify({ venueId: venueObj.id }),
-              });
-
-              // Update local state immediately
-              setUserData(prev => prev ? { ...prev, venues: prev.venues.filter(v => v.id !== venueObj.id) } : prev);
+            onRemoveTag={async (venue) => {
+              await apiFetchAuth("api/users/removeVenue", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ venueId: venue.id }) });
+              setUserData(prev => prev ? { ...prev, venues: prev.venues.filter(v => v.id !== venue.id) } : prev);
             }}
           />
         </View>
