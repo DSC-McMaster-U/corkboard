@@ -5,6 +5,7 @@ This document provides the input and output specification for all of Corkboard's
 ### Important Notes
 
 - All dates should be passed as a string, convereted using the method .toISOString()
+- TODO: Add definition for special enum types (ex: Event Source Enum, Source Type Enum) based on database specifications
 
 ## Auth
 
@@ -179,7 +180,8 @@ This document provides the input and output specification for all of Corkboard's
     cost: number | undefined,
     status: string | undefined, (Event Status Enum)
     source_type: string | undefined, (Source Type Enum)
-    source_url: string | undefined
+    source_url: string | undefined,
+    artist_id: string | undefined
 }
 ```
 
@@ -192,44 +194,6 @@ This document provides the input and output specification for all of Corkboard's
 	id: string | undefined
 	success: bool | undefined
 	error: string | undefined
-}
-```
-
-`PUT /api/users/:userId`
-
-- Updates the user's profile information.
-- Errors if the JWT Token is invalid or if the `userId` in the URL does not match the authenticated user's ID.
-- ##### URL Parameters
-    - `userId=<string>` (Required)
-- ##### Request Headers
-    - `Authorization: "Bearer <JWT Token>"`
-    - `Content-Type: "application/json"`
-    - `Accept: "application/json"`
-- ##### Request Body [All fields optional]
-
-```
-{
-    name: string | undefined,
-    username: string | undefined,
-    profile_picture: string | undefined,
-    bio: string | undefined
-}
-```
-
-- ##### Response Headers
-    - `Content-Type: "application/json"`
-- ##### Response Body
-
-```
-{
-    success: boolean | undefined,
-    user: {
-            id: string, name: string | undefined,
-            username: string | undefined,
-            profile_picture: string | undefined,
-            bio: string | undefined
-          } | undefined,
-    error: string | undefined
 }
 ```
 
@@ -298,6 +262,7 @@ This document provides the input and output specification for all of Corkboard's
 - Returns the current user session information based on the JWT Token.
 - Errors if the JWT token is invalid.
 - ##### Request Headers
+    - `Authorization: "Bearer <JWT Token>"`
     - `Accept: “application/json”`
 - ##### Response Headers
     - `Content-Type: "application/json"`
@@ -343,6 +308,108 @@ This document provides the input and output specification for all of Corkboard's
     jwt: string | undefined
     success: bool | undefined
     error: string | undefined
+}
+```
+
+`PUT /api/users/:userId`
+
+- Updates the user's profile information.
+- Errors if the JWT Token is invalid or if the `userId` in the URL does not match the authenticated user's ID.
+- ##### URL Parameters
+    - `userId=<string>` (Required)
+- ##### Request Headers
+    - `Authorization: "Bearer <JWT Token>"`
+    - `Content-Type: "application/json"`
+    - `Accept: "application/json"`
+- ##### Request Body [All fields optional]
+
+```
+{
+    name: string | undefined,
+    username: string | undefined,
+    profile_picture: string | undefined,
+    bio: string | undefined
+}
+```
+
+- ##### Response Headers
+    - `Content-Type: "application/json"`
+- ##### Response Body
+
+```
+{
+    success: boolean | undefined,
+    user: {
+            id: string, 
+            name: string | undefined,
+            username: string | undefined,
+            profile_picture: string | undefined,
+            bio: string | undefined
+          } | undefined,
+    error: string | undefined
+}
+```
+
+`GET /api/users/suggested-events`
+
+- Returns personalized event suggestions for the current user (passed through the JWT token).
+- Errors if the JWT token is invalid.
+- ##### URL Parameters [Optional]
+    - `limit=<number>`
+- ##### Request Headers
+    - `Authorization: "Bearer <JWT Token>"`
+    - `Accept: “application/json”`
+- ##### Response Headers
+    - `Content-Type: "application/json"`
+- ##### Response Body
+
+```
+{
+    events: [
+      {
+        user_id: string,
+        event_id: string,
+        title: string,     
+        description: string | undefined,  
+        venue_id: string,
+        start_time: string (Date String),
+        cost: number | undefined,
+        status: string | undefined (Event Status Enum),        
+        created_at: string (Date String),
+        source_type: string (Source Type Enum),    
+        source_url: string | undefined,
+        ingestion_status: string | undefined (Ingestion Status Enum),
+        image: string | undefined, 
+        artist_id: string | undefined,
+        archived: boolean,
+        score: number,
+        venues: {
+            id: string,
+            name: string,
+            address: string | undefined,
+            venue_type: string (Venue Type) | undefined,
+            latitude: number | undefined,
+            longitude: number | undefined,
+        },
+        event_genres: [
+            {
+                genres: {
+                    id: string,
+                    name: string
+                },       
+                genre_id: string
+            }
+        ] | undefined,
+        artists: {
+            id: string,
+            bio: string | undefined,
+            name: string,    
+            image: string | undefined
+        } | undefined
+      },
+    ] | undefined
+    success: boolean | undefined,
+    error: string | undefined,
 }
 ```
 

@@ -474,7 +474,7 @@ describe("GET /api/users/suggested-events", () => {
 
         // Verify sort and scores
         for (let i = 0; i < events.length; i++) {
-            console.log(events[i]);
+            //console.log(events[i]);
 
             if (i > 0) {
                 expect(events[i].score).toBeLessThanOrEqual(
