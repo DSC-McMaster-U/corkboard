@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from '@/api/api';
@@ -127,6 +127,11 @@ export default function RegisterScreen() {
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.outer}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Register your{"\n"}account</Text>
@@ -261,6 +266,7 @@ export default function RegisterScreen() {
             </Text>
           </View>
       </View>
+      </ScrollView>
     </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -278,16 +284,24 @@ const COLORS = {
 };
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#000000", // black status bar area
+  },
   page: {
     flex: 1,
     backgroundColor: COLORS.frameBg,
-    justifyContent: "center",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 20,
+    paddingBottom: 40,
     alignItems: "center",
-    padding: 16,
   },
   outer: {
     width: "100%",
     maxWidth: 380,
+    paddingHorizontal: 16,
   },
   card: {
     backgroundColor: COLORS.cardBg,
@@ -298,8 +312,8 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 7,
-    alignSelf: "center",
-    width: "92%",
+    width: "100%",
+    marginBottom: 24,
   },
   cardTitle: {
     color: COLORS.textOnDark,
@@ -365,15 +379,5 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 12,
     lineHeight: 16,
-  },
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.frameBg,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
   },
 });
