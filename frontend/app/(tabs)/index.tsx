@@ -11,6 +11,7 @@ import { ExploreFavoriteGenres } from '@/components/explore/favorite-genres';
 import { ExploreFavoriteVenuesEvents } from '@/components/explore/favorite-venues-events';
 import { ExploreEventsFromFavGenres } from '@/components/explore/events-genres-mixed';
 import { ShowcaseEvent } from '@/components/explore/showcase-event';
+import { ExplorePersonalizedEvents } from '@/components/explore/personalized-events';
 
 //import {} from 'expo-router';
 
@@ -31,6 +32,12 @@ export default function ExploreScreen() {
           {/* Bookmarks Section */}
           <View className='mb-6'>
             <Bookmarks />
+          </View>
+
+          {/* Personlized for you section */}
+          <View className='mb-6'>
+            <Text className='text-lg mb-4 text-foreground font-semibold tracking-wide'>Personalized events for you</Text>
+            <ExplorePersonalizedEvents />
           </View>
 
           {/* Explore shows - personalized based on favourites*/}
