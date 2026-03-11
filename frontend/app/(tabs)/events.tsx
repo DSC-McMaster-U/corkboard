@@ -7,6 +7,7 @@ import BottomPanel from '@/components/bottom-panel/bottom-panel';
 import type { EventData, EventList, GenreData, Genre } from "@/constants/types";
 import { formatEventDateTimeToDate, formatEventDateTimeToTime } from "@/scripts/formatDateHelper";
 import { apiFetch } from "@/api/api";
+import { usePerfTracker } from "@/hooks/use-perf";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EventListCard } from "@/components/ui/event-list-card";
 
@@ -120,6 +121,8 @@ export default function EventsScreen() {
 
   const eventLimit = 100;
   const maxCostValue = 200;
+
+  usePerfTracker('EventsScreen', loading, eventList.length > 0);
 
   useEffect(() => {
     const controller = new AbortController();
