@@ -162,51 +162,6 @@ export const eventService = {
         return data;
     },
 
-    // user uploaded event functions below
-    getUserUploadedEvents: async (
-        limit: number,
-        min_start_time: string,
-        max_start_time: string,
-        min_cost: number,
-        max_cost: number,
-    ) => {
-        const { data, error } = await db.events.getUserUploadedDrafts(
-            limit,
-            min_start_time,
-            max_start_time,
-            min_cost,
-            max_cost,
-        );
-        if (error) throw error;
-        return data ?? [];
-    },
-    uploadUserEvent: async (
-        user_id: string,
-        title: string,
-        venue_id: string,
-        start_time: string,
-        description: string,
-        cost?: number,
-        image?: string,
-        artist_id?: string,
-    ) => {
-        const { data, error } = await db.events.create({
-            title: title,
-            description: description,
-            venue_id: venue_id,
-            start_time: start_time,
-            cost: cost,
-            status: "draft",
-            source_type: "manual", // update this after db migration
-            source_url: user_id,
-            image: image,
-            artist_id: artist_id,
-        });
-
-        if (error) throw error;
-        return data;
-    },
-
     addGenreToEvent: async (eventId: string, genreId: string) => {
         const { data, error } = await db.events.addGenre(eventId, genreId);
         if (error) throw error;
