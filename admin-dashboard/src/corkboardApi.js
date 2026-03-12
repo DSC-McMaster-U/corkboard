@@ -114,12 +114,12 @@ export async function updateDraft(form, draftId) {
     }),
   });
   const data = await res.json();
-  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  if (!res.ok || data?.error) throw new Error(data?.error?.message ?? data?.error ?? res.statusText);
   return data;
 }
 
 export async function deleteDraft(draftId) {
-  const res = await fetch(`${API_BASE}/api/drafts/deleteDraft`, {
+  const res = await fetch(`${API_BASE}/api/drafts/${draftId}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -134,6 +134,17 @@ export async function deleteDraft(draftId) {
 }
 
 export async function publishDraft(draftId) {
-  console.log("Publishing draft with ID:", draftId);
-  // replace with api call to /api/drafts/publishDraft 
+  const url = `${API_BASE}/api/drafts/publish/${draftId}`;
+  console.log("[publishDraft] POST", url);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  console.log("[publishDraft] response status:", res.status, res.statusText);
+  const data = await res.json();
+  console.log("[publishDraft] response body:", data);
+  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  return data;
 }

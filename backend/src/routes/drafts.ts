@@ -220,13 +220,30 @@ router.post("/updateDraft", async (req: Request, res: Response) => {
             res.status(200).json({ id: result.id, success: true });
         })
         .catch((err) => {
-            res.status(500).json({ success: false, error: err });
+            console.error("Error updating draft:", err);
+            res.status(500).json({ success: false, error: err?.message ?? String(err) });
         });
 });
 
 
 // POST /api/drafts/publish/:id - Publish draft by ID (create event from draft, + venue and artist if they don't already exist, then delete draft)
+router.post("/publish/:id", async (req: Request, res: Response) => {
+    const { id } = req.params;
 
+    if (!id) {
+        res.status(400).json({ error: "Draft ID is missing" });
+        return;
+    }
 
+    draftService
+        .publishDraft(id)
+        .then((event) => {
+            res.status(200).json({ event, success: true });
+        })
+        .catch((err: Error) => {
+            console.log("Error publishing draft: ", err);
+            res.status(500).json({ success: false, error: err.message ?? err });
+        });
+});
 
 export default router;
