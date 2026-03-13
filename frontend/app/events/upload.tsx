@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { AppHeader } from "@/components/header";
+import { apiFetch } from "@/api/api";
 
 import StartDateTimePicker from "@/components/upload/start-date-time-picker";
 import PriceRangeSlider from "@/components/upload/price-range-slider";
@@ -64,15 +65,13 @@ export default function UploadScreen() {
   const venueAddressMsg = !venueAddress.trim()
     ? "Enter the venue address so people can find it."
     : null;
-  const photoMsg = !photoUri ? "Add a photo/poster to help it stand out." : null;
 
   const canSubmit =
     title.trim().length > 0 &&
     desc.trim().length > 0 &&
     !!startDate &&
     venueName.trim().length > 0 &&
-    venueAddress.trim().length > 0 &&
-    !!photoUri;
+    venueAddress.trim().length > 0;
 
   const updateArtist = (idx: number, val: string) => {
     setArtists((prev) => prev.map((a, i) => (i === idx ? val : a)));
@@ -120,26 +119,45 @@ export default function UploadScreen() {
       }));
       return;
     }
-
+  
     setErrors((e) => ({ ...e, form: undefined }));
     setSubmitting(true);
-
+  
     try {
       const cleanedArtists = artists.map((a) => a.trim()).filter(Boolean);
-
+      const firstArtist = cleanedArtists[0] || undefined;
+  
+      // DEV: user_id of johnsharrycasual@gmail.com
+      const userId = "db024f4d-89bf-46bc-95f1-221706ed99f0";
+  
       const payload = {
         title: title.trim(),
         description: desc.trim(),
         start_time: startDate!.toISOString(),
-        min_cost: priceRange[0],
-        max_cost: priceRange[1],
-        ticket_link: ticketLink.trim() || null,
-        venue: { name: venueName.trim(), address: venueAddress.trim() },
-        artists: cleanedArtists,
+        cost: priceRange[0],
+        user_id: userId,
+        source_url: ticketLink.trim() || undefined,
+        image: photoUri || undefined,
+  
+        venue_name: venueName.trim(),
+        venue_address: venueAddress.trim(),
+  
+        artist_name: firstArtist,
       };
-
-      console.log("Submitting event payload:", payload);
-
+  
+      const data = await apiFetch<{
+        id?: string;
+        success?: boolean;
+        error?: string;
+      }>("api/drafts/upload", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+  
+      if (!data || data.success === false || data.error) {
+        throw new Error(data?.error || "Failed to submit draft.");
+      }
+  
       router.back();
     } catch (e: any) {
       setErrors((prev) => ({
@@ -171,9 +189,7 @@ export default function UploadScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Card */}
           <View style={styles.card}>
-            {/* Event Info */}
             <Text style={styles.cardTitle}>Event Info</Text>
 
             <View style={styles.fieldBlock}>
@@ -244,7 +260,7 @@ export default function UploadScreen() {
             </View>
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Photo</Text>
+              <Text style={styles.fieldLabel}>Photo (optional)</Text>
               <Pressable style={styles.photoBox} onPress={pickPhoto}>
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={styles.photoPreview} />
@@ -256,9 +272,6 @@ export default function UploadScreen() {
                 )}
               </Pressable>
 
-              {touched.photo && photoMsg && (
-                <Text style={styles.helperText}>{photoMsg}</Text>
-              )}
               {!!errors.photo && (
                 <Text style={[styles.errorText, { marginTop: 8 }]}>
                   {errors.photo}
@@ -266,7 +279,6 @@ export default function UploadScreen() {
               )}
             </View>
 
-            {/* Venue Info */}
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Venue Info</Text>
             </View>
@@ -305,7 +317,6 @@ export default function UploadScreen() {
               )}
             </View>
 
-            {/* Artists */}
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Artist Info</Text>
               <Pressable style={styles.addPill} onPress={addArtist}>
