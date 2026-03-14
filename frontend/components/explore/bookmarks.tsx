@@ -4,7 +4,6 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetchAuth } from '@/api/api';
-import { usePerfTracker } from '@/hooks/use-perf';
 import { BookmarkSkeleton } from '@/components/ui/skeleton';
 import { useFocusEffect } from 'expo-router';
 import { EventData } from '@/constants/types';
@@ -129,8 +128,6 @@ export function Bookmarks() {
     const [error, setError] = useState<string | null>(null);
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
     const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
-
-    usePerfTracker('Bookmarks', loading, bookmarks.length > 0);
 
     const removeBookmark = useCallback(async (eventId: string) => {
         // Clear any previous error for this item

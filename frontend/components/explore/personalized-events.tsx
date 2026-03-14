@@ -3,7 +3,6 @@ import { View, Text, FlatList, Image } from 'react-native';
 import { router } from 'expo-router';
 import { EventData, EventList, UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
-import { usePerfTracker } from '@/hooks/use-perf';
 
 import { ShowCard } from '@/components/ui/show-card';
 import { ShowCardSkeleton } from '@/components/ui/skeleton';
@@ -12,8 +11,6 @@ export function ExplorePersonalizedEvents() {
     const [shows, setShows] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    usePerfTracker('PersonalizedEvents', loading, shows.length > 0);
 
     useEffect(() => {
         const controller = new AbortController();
