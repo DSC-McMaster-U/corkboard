@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, StatusBar, ActivityIndicator } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import EventModal from '@/components/event-modal';
@@ -254,19 +254,14 @@ export default function EventsScreen() {
         </TouchableOpacity>
       </View>
 
-        <ScrollView contentContainerStyle={{ paddingTop: 4, paddingBottom: 120, marginHorizontal: 16 }} keyboardShouldPersistTaps="handled">
-          {eventList.map((event) => (
-            <EventListCard key={event.id} event={event} />
-            // <InfoBox
-            //   key={event.id}
-            //   event={event}
-            //   onPress={() => {
-            //     setSelectedEvent(event);
-            //     setModalVisible(true);
-            //   }}
-            // />
-          ))}
-        </ScrollView>
+        <FlatList
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 120, marginHorizontal: 16 }}
+          data={eventList}
+          keyExtractor={(item) => item.id.toString()}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={10}
+          renderItem={({ item }) => <EventListCard event={item} />}
+        />
 
         <EventModal
           visible={modalVisible}

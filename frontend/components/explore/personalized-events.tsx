@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, Image } from 'react-native';
 import { router } from 'expo-router';
 import { EventData, EventList, UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 
 import { ShowCard } from '@/components/ui/show-card';
+import { ShowCardSkeleton } from '@/components/ui/skeleton';
 
 export function ExplorePersonalizedEvents() {
     const [shows, setShows] = useState<EventData[]>([]);
@@ -28,6 +29,11 @@ export function ExplorePersonalizedEvents() {
                         id: event.id ?? event.event_id,
                     }));
                     setShows(mappedEvents);
+
+                    // Prefetch images for the first 5 events
+                    mappedEvents.slice(0, 5).forEach((e: EventData) => {
+                        if (e.image) Image.prefetch(e.image);
+                    });
                 }
             } catch (err: any) {
                 if (isMounted && err.name !== "AbortError") {
@@ -36,7 +42,7 @@ export function ExplorePersonalizedEvents() {
             } finally {
                 if (isMounted) {
                     setLoading(false);
-                    console.log("Fetched personalized events:", shows[0]);
+                    //console.log("Fetched personalized events:", shows[0]);
                 }
             }
         };
@@ -49,17 +55,22 @@ export function ExplorePersonalizedEvents() {
         };
     }, []);
 
-    if (loading) return <View className="px-4 py-2"><Text className="text-foreground/60">Loading your events...</Text></View>;
+    if (loading) return <ShowCardSkeleton />;
     if (error) return <View className="px-4 py-2"><Text className="text-red-500">{error}</Text></View>;
     if (shows.length === 0) return <View className="px-4 py-2"><Text className="text-foreground/40 italic">No personalized events found yet. Try adding more favorite genres!</Text></View>;
 
     return (
         <View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className='flex-row'>
-                {shows.map((show, index) => (
-                    <ShowCard key={index} show={show} />
-                ))}
-            </ScrollView>
+            <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={shows}
+                keyExtractor={(item) => item.id.toString()}
+                initialNumToRender={5}
+                renderItem={({ item }) => (
+                    <ShowCard show={item} />
+                )}
+            />
         </View>
     );
 }

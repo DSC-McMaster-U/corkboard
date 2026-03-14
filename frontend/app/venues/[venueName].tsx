@@ -356,10 +356,11 @@ interface ShowCardProps {
   show: EventData;
 }
 
-function ShowCard({ show }: ShowCardProps) {
-  const PLACEHOLDER_IMAGE =
-    "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imageUri = show.image || PLACEHOLDER_IMAGE;
+const VENUE_PLACEHOLDER_IMAGE =
+  "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+
+const ShowCard = React.memo(function ShowCard({ show }: ShowCardProps) {
+  const imageUri = show.image || VENUE_PLACEHOLDER_IMAGE;
 
   const handlePress = () => {
     router.push({
@@ -401,4 +402,4 @@ function ShowCard({ show }: ShowCardProps) {
       </Text>
     </TouchableOpacity>
   );
-}
+});

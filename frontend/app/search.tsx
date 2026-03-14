@@ -8,6 +8,7 @@ import {
     Image,
     ActivityIndicator,
     Keyboard,
+    FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -172,31 +173,30 @@ export default function SearchScreen() {
             </View>
 
             {/* Results */}
-            <ScrollView className="flex-1 px-4" keyboardShouldPersistTaps="handled">
-                {queryLoading && (
-                    <View className="py-8 items-center">
-                        <ActivityIndicator size="large" color="#411900" />
-                    </View>
-                )}
+            {queryLoading && (
+                <View className="py-8 items-center">
+                    <ActivityIndicator size="large" color="#411900" />
+                </View>
+            )}
 
-                {!queryLoading && hasSearched && events.length === 0 && (
-                    <View className="py-8 items-center">
-                        <Feather name="search" size={48} color="#ccc" />
-                        <Text className="text-neutral-500 mt-3">No results found</Text>
-                    </View>
-                )}
+            {!queryLoading && hasSearched && events.length === 0 && (
+                <View className="py-8 items-center">
+                    <Feather name="search" size={48} color="#ccc" />
+                    <Text className="text-neutral-500 mt-3">No results found</Text>
+                </View>
+            )}
 
-                {!queryLoading &&
-                    events.map((event) => (
-                        <EventListCard
-                            key={event.id}
-                            event={event}
-                        />
-                    ))}
-
-                {/* Spacer for keyboard */}
-                <View className="h-32" />
-            </ScrollView>
+            {!queryLoading && events.length > 0 && (
+                <FlatList
+                    className="flex-1 px-4"
+                    keyboardShouldPersistTaps="handled"
+                    data={events}
+                    keyExtractor={(item) => item.id.toString()}
+                    initialNumToRender={10}
+                    renderItem={({ item }) => <EventListCard event={item} />}
+                    ListFooterComponent={<View className="h-32" />}
+                />
+            )}
 
 
         </SafeAreaView>
