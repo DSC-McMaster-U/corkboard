@@ -32,7 +32,7 @@ export function ExploreFavoriteVenuesEvents() {
 
                 if (isMounted) {
                     const filteredShows = (eventsRes.events || []).filter(event =>
-                        favoriteVenueIds.includes(event.venues?.id.toString())
+                        favoriteVenueIds.includes(String(event.venues?.id))
                     );
                     setShows(filteredShows);
 
