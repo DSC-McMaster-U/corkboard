@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Image } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { EventData, EventList, UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
@@ -48,9 +49,9 @@ export function ExploreEventsForYou() {
 
                     setShows(filteredShows);
 
-                    // Prefetch images for the first 5 events
+                    // Prefetch images for the first 5 events using expo-image cache
                     filteredShows.slice(0, 5).forEach((e: EventData) => {
-                        if (e.image) Image.prefetch(e.image);
+                        if (e.image) ExpoImage.prefetch(e.image);
                     });
                 }
             } catch (err: any) {
