@@ -125,6 +125,8 @@ describe("JWT Authentication", () => {
             .set("Authorization", `Bearer ${jwtToken}`)
             .send({ eventId: TEST_EVENT_ID });
 
+        console.log(response.body)
+
         // should return 200 (bookmark created) or 418 (already exists)
         expect([200, 418]).toContain(response.statusCode);
 
