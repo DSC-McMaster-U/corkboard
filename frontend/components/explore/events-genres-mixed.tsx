@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { router } from 'expo-router';
 import { EventData, EventList, UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
+import { Image } from 'expo-image';
 
 import { ShowCard } from '@/components/ui/show-card';
 
