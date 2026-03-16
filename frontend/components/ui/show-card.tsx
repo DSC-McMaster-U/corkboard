@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { EventData } from '@/constants/types';
 
@@ -7,8 +8,9 @@ export interface ShowCardProps {
     show: EventData;
 }
 
-export function ShowCard({ show }: ShowCardProps) {
-    const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
+
+export const ShowCard = React.memo(function ShowCard({ show }: ShowCardProps) {
     const imageUri = show.image || PLACEHOLDER_IMAGE;
 
     const handlePress = () => {
@@ -39,9 +41,10 @@ export function ShowCard({ show }: ShowCardProps) {
         <TouchableOpacity className='w-36 mr-4' onPress={handlePress}>
             <View className="rounded-2xl h-36 w-36 mb-2 overflow-hidden bg-neutral-300">
                 <Image
-                    source={{ uri: imageUri }}
-                    className="h-full w-full"
-                    resizeMode="cover"
+                    source={imageUri}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                    transition={200}
                 />
             </View>
             <Text className='text-foreground font-semibold text-sm' numberOfLines={1}>
@@ -52,4 +55,4 @@ export function ShowCard({ show }: ShowCardProps) {
             </Text>
         </TouchableOpacity>
     );
-}
+});
