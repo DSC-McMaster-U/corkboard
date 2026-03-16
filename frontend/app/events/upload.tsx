@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,34 +10,216 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { AppHeader } from "@/components/header";
+import { apiFetch } from "@/api/api";
 
 import StartDateTimePicker from "@/components/upload/start-date-time-picker";
 import PriceRangeSlider from "@/components/upload/price-range-slider";
 
 type Errors = Partial<{
   photo: string;
+  artistPhoto: string;
   form: string;
 }>;
 
+type Mode = "existing" | "new";
+
+type ExistingVenue = {
+  id: string;
+  name: string;
+  address?: string;
+};
+
+type ExistingArtist = {
+  id: string;
+  name: string;
+  bio?: string;
+  image?: string;
+};
+
+type VenuesResponse = {
+  venue?: ExistingVenue;
+  venues?: ExistingVenue[];
+  error?: string;
+};
+
+function ModeToggle({
+  value,
+  onChange,
+  leftLabel,
+  rightLabel,
+}: {
+  value: Mode;
+  onChange: (value: Mode) => void;
+  leftLabel: string;
+  rightLabel: string;
+}) {
+  return (
+    <View style={styles.modeToggle}>
+      <Pressable
+        onPress={() => onChange("existing")}
+        style={[
+          styles.modeOption,
+          value === "existing" && styles.modeOptionActive,
+        ]}
+      >
+        <Text
+          style={[
+            styles.modeOptionText,
+            value === "existing" && styles.modeOptionTextActive,
+          ]}
+        >
+          {leftLabel}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => onChange("new")}
+        style={[styles.modeOption, value === "new" && styles.modeOptionActive]}
+      >
+        <Text
+          style={[
+            styles.modeOptionText,
+            value === "new" && styles.modeOptionTextActive,
+          ]}
+        >
+          {rightLabel}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function SelectField<T extends { id: string; name: string }>({
+  label,
+  placeholder,
+  items,
+  selectedId,
+  onSelect,
+  emptyText,
+  getSubtitle,
+  disabled = false,
+  loading = false,
+}: {
+  label: string;
+  placeholder: string;
+  items: T[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  emptyText: string;
+  getSubtitle?: (item: T) => string | undefined;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const selectedItem = items.find((item) => item.id === selectedId);
+
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+
+      <Pressable
+        style={[styles.selectTrigger, disabled && styles.selectTriggerDisabled]}
+        onPress={() => {
+          if (!disabled) setOpen((prev) => !prev);
+        }}
+      >
+        <Text
+          style={[
+            styles.selectTriggerText,
+            !selectedItem && styles.placeholderText,
+            disabled && styles.disabledText,
+          ]}
+        >
+          {selectedItem ? selectedItem.name : placeholder}
+        </Text>
+
+        {loading ? (
+          <ActivityIndicator size="small" color="#411900" />
+        ) : (
+          <Feather
+            name={open ? "chevron-up" : "chevron-down"}
+            size={18}
+            color="#411900"
+          />
+        )}
+      </Pressable>
+
+      {open && !disabled && (
+        <View style={styles.selectMenu}>
+          {items.length === 0 ? (
+            <Text style={styles.emptyMenuText}>{emptyText}</Text>
+          ) : (
+            items.map((item) => {
+              const isSelected = item.id === selectedId;
+              const subtitle = getSubtitle?.(item);
+
+              return (
+                <Pressable
+                  key={item.id}
+                  style={[
+                    styles.selectItem,
+                    isSelected && styles.selectItemSelected,
+                  ]}
+                  onPress={() => {
+                    onSelect(item.id);
+                    setOpen(false);
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.selectItemTitle}>{item.name}</Text>
+                    {!!subtitle && (
+                      <Text style={styles.selectItemSubtitle} numberOfLines={2}>
+                        {subtitle}
+                      </Text>
+                    )}
+                  </View>
+
+                  {isSelected && (
+                    <Feather name="check" size={16} color="#411900" />
+                  )}
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function UploadScreen() {
-  // required fields
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [venueName, setVenueName] = useState("");
-  const [venueAddress, setVenueAddress] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
 
-  // optional fields
   const [ticketLink, setTicketLink] = useState("");
-  const [artists, setArtists] = useState<string[]>([""]);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+
+  const [venueMode, setVenueMode] = useState<Mode>("existing");
+  const [selectedVenueId, setSelectedVenueId] = useState("");
+  const [venueName, setVenueName] = useState("");
+  const [venueAddress, setVenueAddress] = useState("");
+
+  const [artistMode, setArtistMode] = useState<Mode>("new");
+  const [selectedArtistId, setSelectedArtistId] = useState("");
+  const [artistName, setArtistName] = useState("");
+  const [artistBio, setArtistBio] = useState("");
+  const [artistImageUri, setArtistImageUri] = useState<string | null>(null);
+
+  const [existingVenues, setExistingVenues] = useState<ExistingVenue[]>([]);
+  const [venuesLoading, setVenuesLoading] = useState(true);
+
+  const [existingArtists] = useState<ExistingArtist[]>([]);
+  const [artistsLoading] = useState(false);
 
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -48,44 +230,107 @@ export default function UploadScreen() {
     startDate: false,
     venueName: false,
     venueAddress: false,
+    selectedVenueId: false,
+    selectedArtistId: false,
+    artistName: false,
     photo: false,
+    artistPhoto: false,
   });
 
-  const canDeleteArtist = useMemo(() => artists.length > 1, [artists.length]);
+  useEffect(() => {
+    const loadVenues = async () => {
+      try {
+        setVenuesLoading(true);
+    
+        const data = await apiFetch<VenuesResponse>("api/venues", {
+          method: "GET",
+        });
+    
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+    
+        const venues = (data?.venues ?? []).filter(
+          (v) => !v.name.startsWith("GENERATED-VENUE")
+        );
+    
+        setExistingVenues(venues);
+      } catch (e) {
+        console.error("Failed to load venues:", e);
+        setExistingVenues([]);
+      } finally {
+        setVenuesLoading(false);
+      }
+    };
+
+    loadVenues();
+  }, []);
+
+  const selectedVenue = useMemo(
+    () => existingVenues.find((v) => v.id === selectedVenueId),
+    [existingVenues, selectedVenueId]
+  );
+
+  const selectedArtist = useMemo(
+    () => existingArtists.find((a) => a.id === selectedArtistId),
+    [existingArtists, selectedArtistId]
+  );
+
+  const artistHasAnyNewValue = useMemo(
+    () =>
+      [artistName, artistBio, artistImageUri].some(
+        (value) => !!value && value.trim().length > 0
+      ),
+    [artistName, artistBio, artistImageUri]
+  );
 
   const titleMsg = !title.trim() ? "Enter a short, clear event title." : null;
   const descMsg = !desc.trim()
     ? "Add a short description (what to expect, who’s playing, etc.)."
     : null;
   const startDateMsg = !startDate ? "Pick a start date and time." : null;
-  const venueNameMsg = !venueName.trim()
-    ? "Enter the venue name (e.g., Mills Hardware)."
+
+  const venueExistingMsg =
+    venueMode === "existing" && touched.selectedVenueId && !selectedVenueId
+      ? "Select an existing venue."
+      : null;
+
+  const venueNameMsg =
+    venueMode === "new" && !venueName.trim()
+      ? "Enter the venue name (e.g., Mills Hardware)."
+      : null;
+
+  const venueAddressMsg =
+    venueMode === "new" && !venueAddress.trim()
+      ? "Enter the venue address so people can find it."
+      : null;
+
+  const artistExistingMsg =
+    artistMode === "existing" && touched.selectedArtistId && !selectedArtistId
+      ? "Select an existing artist, or switch to Add New."
+      : null;
+
+  const artistNewMsg =
+  artistMode === "new" && !artistName.trim()
+    ? "Enter an artist name when adding a new artist."
     : null;
-  const venueAddressMsg = !venueAddress.trim()
-    ? "Enter the venue address so people can find it."
-    : null;
-  const photoMsg = !photoUri ? "Add a photo/poster to help it stand out." : null;
+
+  const isVenueValid =
+    venueMode === "existing"
+      ? selectedVenueId.trim().length > 0
+      : venueName.trim().length > 0 && venueAddress.trim().length > 0;
+
+  const isArtistValid =
+  artistMode === "existing"
+    ? true
+    : artistName.trim().length > 0;
 
   const canSubmit =
     title.trim().length > 0 &&
     desc.trim().length > 0 &&
     !!startDate &&
-    venueName.trim().length > 0 &&
-    venueAddress.trim().length > 0 &&
-    !!photoUri;
-
-  const updateArtist = (idx: number, val: string) => {
-    setArtists((prev) => prev.map((a, i) => (i === idx ? val : a)));
-  };
-
-  const addArtist = () => setArtists((prev) => [...prev, ""]);
-
-  const deleteArtist = (idx: number) => {
-    setArtists((prev) => {
-      if (prev.length <= 1) return prev;
-      return prev.filter((_, i) => i !== idx);
-    });
-  };
+    isVenueValid &&
+    isArtistValid;
 
   const pickPhoto = async () => {
     setTouched((t) => ({ ...t, photo: true }));
@@ -112,6 +357,31 @@ export default function UploadScreen() {
     }
   };
 
+  const pickArtistPhoto = async () => {
+    setTouched((t) => ({ ...t, artistPhoto: true }));
+
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setErrors((e) => ({
+        ...e,
+        artistPhoto: "Please allow photo access to upload an artist image.",
+      }));
+      return;
+    }
+
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [1, 1],
+    });
+
+    if (!res.canceled) {
+      setArtistImageUri(res.assets[0]?.uri ?? null);
+      setErrors((e) => ({ ...e, artistPhoto: undefined, form: undefined }));
+    }
+  };
+
   const onSubmit = async () => {
     if (!canSubmit || submitting) {
       setErrors((e) => ({
@@ -125,20 +395,47 @@ export default function UploadScreen() {
     setSubmitting(true);
 
     try {
-      const cleanedArtists = artists.map((a) => a.trim()).filter(Boolean);
+      const userId = "db024f4d-89bf-46bc-95f1-221706ed99f0";
 
-      const payload = {
+      const payload: Record<string, any> = {
         title: title.trim(),
         description: desc.trim(),
         start_time: startDate!.toISOString(),
-        min_cost: priceRange[0],
-        max_cost: priceRange[1],
-        ticket_link: ticketLink.trim() || null,
-        venue: { name: venueName.trim(), address: venueAddress.trim() },
-        artists: cleanedArtists,
+        cost: priceRange[0],
+        user_id: userId,
+        source_url: ticketLink.trim() || undefined,
+        image: photoUri || undefined,
       };
 
-      console.log("Submitting event payload:", payload);
+      if (venueMode === "existing") {
+        payload.venue_id = selectedVenueId;
+      } else {
+        payload.venue_name = venueName.trim();
+        payload.venue_address = venueAddress.trim();
+      }
+
+      if (artistMode === "existing") {
+        if (selectedArtistId.trim()) {
+          payload.artist_id = selectedArtistId.trim();
+        }
+      } else if (artistHasAnyNewValue) {
+        payload.artist_name = artistName.trim() || undefined;
+        payload.artist_bio = artistBio.trim() || undefined;
+        payload.artist_image = artistImageUri || undefined;
+      }
+
+      const data = await apiFetch<{
+        id?: string;
+        success?: boolean;
+        error?: string;
+      }>("api/drafts/upload", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      if (!data || data.success === false || data.error) {
+        throw new Error(data?.error || "Failed to submit draft.");
+      }
 
       router.back();
     } catch (e: any) {
@@ -171,9 +468,7 @@ export default function UploadScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Card */}
           <View style={styles.card}>
-            {/* Event Info */}
             <Text style={styles.cardTitle}>Event Info</Text>
 
             <View style={styles.fieldBlock}>
@@ -244,21 +539,18 @@ export default function UploadScreen() {
             </View>
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Photo</Text>
+              <Text style={styles.fieldLabel}>Event Photo (optional)</Text>
               <Pressable style={styles.photoBox} onPress={pickPhoto}>
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={styles.photoPreview} />
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Feather name="image" size={50} color="#7a4c2a" />
-                    <Text style={styles.photoHint}>Tap to add photo</Text>
+                    <Text style={styles.photoHint}>Tap to add event photo</Text>
                   </View>
                 )}
               </Pressable>
 
-              {touched.photo && photoMsg && (
-                <Text style={styles.helperText}>{photoMsg}</Text>
-              )}
               {!!errors.photo && (
                 <Text style={[styles.errorText, { marginTop: 8 }]}>
                   {errors.photo}
@@ -266,74 +558,200 @@ export default function UploadScreen() {
               )}
             </View>
 
-            {/* Venue Info */}
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Venue Info</Text>
             </View>
 
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Name</Text>
-              <TextInput
-                value={venueName}
-                onChangeText={(v) => {
-                  setVenueName(v);
-                  setTouched((t) => ({ ...t, venueName: true }));
-                }}
-                style={styles.input}
-                placeholder="e.g., Mills Hardware"
-                placeholderTextColor="#9a7b68"
-              />
-              {touched.venueName && venueNameMsg && (
-                <Text style={styles.helperText}>{venueNameMsg}</Text>
-              )}
-            </View>
+            <ModeToggle
+              value={venueMode}
+              onChange={(mode) => {
+                setVenueMode(mode);
+                setErrors((e) => ({ ...e, form: undefined }));
 
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Address</Text>
-              <TextInput
-                value={venueAddress}
-                onChangeText={(v) => {
-                  setVenueAddress(v);
-                  setTouched((t) => ({ ...t, venueAddress: true }));
-                }}
-                style={styles.input}
-                placeholder="Street, City"
-                placeholderTextColor="#9a7b68"
-              />
-              {touched.venueAddress && venueAddressMsg && (
-                <Text style={styles.helperText}>{venueAddressMsg}</Text>
-              )}
-            </View>
+                if (mode === "existing") {
+                  setVenueName("");
+                  setVenueAddress("");
+                } else {
+                  setSelectedVenueId("");
+                }
+              }}
+              leftLabel="Select Existing"
+              rightLabel="Add New"
+            />
 
-            {/* Artists */}
+            {venueMode === "existing" ? (
+              <>
+                <SelectField
+                  label="Venue"
+                  placeholder={
+                    venuesLoading ? "Loading venues..." : "Choose a venue"
+                  }
+                  items={existingVenues}
+                  selectedId={selectedVenueId}
+                  onSelect={(id) => {
+                    setSelectedVenueId(id);
+                    setTouched((t) => ({ ...t, selectedVenueId: true }));
+                  }}
+                  emptyText={
+                    venuesLoading
+                      ? "Loading venues..."
+                      : "No existing venues available."
+                  }
+                  getSubtitle={(item) => item.address}
+                  loading={venuesLoading}
+                />
+
+                {touched.selectedVenueId && venueExistingMsg && (
+                  <Text style={styles.helperText}>{venueExistingMsg}</Text>
+                )}
+
+                {!!selectedVenue?.address && (
+                  <Text style={styles.previewText}>
+                    Address: {selectedVenue.address}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <>
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Name</Text>
+                  <TextInput
+                    value={venueName}
+                    onChangeText={(v) => {
+                      setVenueName(v);
+                      setTouched((t) => ({ ...t, venueName: true }));
+                    }}
+                    style={styles.input}
+                    placeholder="e.g., Mills Hardware"
+                    placeholderTextColor="#9a7b68"
+                  />
+                  {touched.venueName && venueNameMsg && (
+                    <Text style={styles.helperText}>{venueNameMsg}</Text>
+                  )}
+                </View>
+
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Address</Text>
+                  <TextInput
+                    value={venueAddress}
+                    onChangeText={(v) => {
+                      setVenueAddress(v);
+                      setTouched((t) => ({ ...t, venueAddress: true }));
+                    }}
+                    style={styles.input}
+                    placeholder="Street, City"
+                    placeholderTextColor="#9a7b68"
+                  />
+                  {touched.venueAddress && venueAddressMsg && (
+                    <Text style={styles.helperText}>{venueAddressMsg}</Text>
+                  )}
+                </View>
+              </>
+            )}
+
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Artist Info</Text>
-              <Pressable style={styles.addPill} onPress={addArtist}>
-                <Feather name="plus" size={14} color="#411900" />
-                <Text style={styles.addPillText}>Add</Text>
-              </Pressable>
             </View>
 
-            {artists.map((a, idx) => (
-              <View key={idx} style={styles.artistRow}>
-                <TextInput
-                  value={a}
-                  onChangeText={(v) => updateArtist(idx, v)}
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder={`Artist ${idx + 1} (optional)`}
-                  placeholderTextColor="#9a7b68"
+            <ModeToggle
+              value={artistMode}
+              onChange={(mode) => {
+                setArtistMode(mode);
+                setErrors((e) => ({ ...e, form: undefined }));
+
+                if (mode === "existing") {
+                  setArtistName("");
+                  setArtistBio("");
+                  setArtistImageUri(null);
+                } else {
+                  setSelectedArtistId("");
+                }
+              }}
+              leftLabel="Select Existing"
+              rightLabel="Add New"
+            />
+
+            {artistMode === "existing" ? (
+              <>
+                <SelectField
+                  label="Artist"
+                  placeholder="Choose an artist"
+                  items={existingArtists}
+                  selectedId={selectedArtistId}
+                  onSelect={(id) => {
+                    setSelectedArtistId(id);
+                    setTouched((t) => ({ ...t, selectedArtistId: true }));
+                  }}
+                  emptyText="No existing artists available."
+                  getSubtitle={(item) => item.bio}
+                  loading={artistsLoading}
                 />
-                {canDeleteArtist && (
-                  <Pressable
-                    onPress={() => deleteArtist(idx)}
-                    hitSlop={10}
-                    style={styles.iconBtn}
-                  >
-                    <Feather name="trash-2" size={16} color="#411900" />
-                  </Pressable>
+
+                {artistExistingMsg && (
+                  <Text style={styles.helperText}>{artistExistingMsg}</Text>
                 )}
-              </View>
-            ))}
+
+                {!!selectedArtist?.bio && (
+                  <Text style={styles.previewText} numberOfLines={3}>
+                    Bio: {selectedArtist.bio}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <>
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Artist Name</Text>
+                  <TextInput
+                    value={artistName}
+                    onChangeText={(v) => {
+                      setArtistName(v);
+                      setTouched((t) => ({ ...t, artistName: true }));
+                    }}
+                    style={styles.input}
+                    placeholder="Enter artist name"
+                    placeholderTextColor="#9a7b68"
+                  />
+                  {touched.artistName && artistNewMsg && (
+                    <Text style={styles.helperText}>{artistNewMsg}</Text>
+                  )}
+                </View>
+
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Artist Bio</Text>
+                  <TextInput
+                    value={artistBio}
+                    onChangeText={setArtistBio}
+                    style={[styles.input, styles.textarea]}
+                    multiline
+                    placeholder="Optional"
+                    placeholderTextColor="#9a7b68"
+                  />
+                </View>
+
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Artist Photo (optional)</Text>
+                  <Pressable style={styles.photoBox} onPress={pickArtistPhoto}>
+                    {artistImageUri ? (
+                      <Image
+                        source={{ uri: artistImageUri }}
+                        style={styles.photoPreview}
+                      />
+                    ) : (
+                      <View style={styles.photoPlaceholder}>
+                        <Feather name="image" size={50} color="#7a4c2a" />
+                        <Text style={styles.photoHint}>Tap to add artist photo</Text>
+                      </View>
+                    )}
+                  </Pressable>
+
+                  {!!errors.artistPhoto && (
+                    <Text style={[styles.errorText, { marginTop: 8 }]}>
+                      {errors.artistPhoto}
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
 
             {!!errors.form && (
               <Text style={[styles.errorText, { marginTop: 12 }]}>
@@ -412,6 +830,13 @@ const styles = StyleSheet.create({
     opacity: 0.95,
   },
 
+  previewText: {
+    color: "#6a3f1d",
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
   input: {
     backgroundColor: "#F3CBAF",
     borderRadius: 12,
@@ -462,36 +887,106 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  addPill: {
+  modeToggle: {
+    flexDirection: "row",
+    backgroundColor: "rgba(65, 25, 0, 0.08)",
+    borderRadius: 14,
+    padding: 4,
+    marginTop: 4,
+  },
+
+  modeOption: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+
+  modeOptionActive: {
+    backgroundColor: "#E2912E",
+  },
+
+  modeOptionText: {
+    color: "#411900",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  modeOptionTextActive: {
+    color: "#ffffff",
+  },
+
+  selectTrigger: {
+    backgroundColor: "#F3CBAF",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(65, 25, 0, 0.08)",
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    gap: 12,
   },
 
-  addPillText: {
+  selectTriggerDisabled: {
+    opacity: 0.7,
+  },
+
+  selectTriggerText: {
     color: "#411900",
-    fontWeight: "500",
-    fontSize: 12,
+    fontSize: 15,
+    flex: 1,
   },
 
-  artistRow: {
-    marginTop: 10,
+  placeholderText: {
+    color: "#9a7b68",
+  },
+
+  disabledText: {
+    opacity: 0.7,
+  },
+
+  selectMenu: {
+    marginTop: 8,
+    backgroundColor: "#fff6ee",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(65, 25, 0, 0.08)",
+    overflow: "hidden",
+  },
+
+  selectItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(65, 25, 0, 0.06)",
   },
 
-  iconBtn: {
-    width: 40,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "rgba(65, 25, 0, 0.08)",
+  selectItemSelected: {
+    backgroundColor: "rgba(226, 145, 46, 0.12)",
+  },
+
+  selectItemTitle: {
+    color: "#411900",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  selectItemSubtitle: {
+    color: "#6a3f1d",
+    fontSize: 12,
+    marginTop: 4,
+    opacity: 0.85,
+  },
+
+  emptyMenuText: {
+    color: "#6a3f1d",
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
 
   submitBtn: {
