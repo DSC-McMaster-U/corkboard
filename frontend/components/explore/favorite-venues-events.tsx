@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Image } from 'react-native';
-import { router } from 'expo-router';
 import { EventData, EventList, UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 import { ShowCard } from '@/components/ui/show-card';
+import { Image as ExpoImage } from 'expo-image';
 
 export function ExploreFavoriteVenuesEvents() {
     const [shows, setShows] = useState<EventData[]>([]);
@@ -38,7 +38,7 @@ export function ExploreFavoriteVenuesEvents() {
 
                     // Prefetch images for the first 5 events
                     filteredShows.slice(0, 5).forEach((e: EventData) => {
-                        if (e.image) Image.prefetch(e.image);
+                        if (e.image) ExpoImage.prefetch(e.image);
                     });
                 }
             } catch (err: any) {

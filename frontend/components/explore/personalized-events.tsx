@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Image } from 'react-native';
-import { router } from 'expo-router';
-import { EventData, EventList, UserData } from '@/constants/types';
-import { apiFetch, apiFetchAuth } from '@/api/api';
+import { EventData } from '@/constants/types';
+import { apiFetchAuth } from '@/api/api';
 
 import { ShowCard } from '@/components/ui/show-card';
 import { ShowCardSkeleton } from '@/components/ui/skeleton';
@@ -42,7 +41,6 @@ export function ExplorePersonalizedEvents() {
             } finally {
                 if (isMounted) {
                     setLoading(false);
-                    //console.log("Fetched personalized events:", shows[0]);
                 }
             }
         };
