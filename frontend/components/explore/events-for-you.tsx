@@ -1,80 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, FlatList } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
-import { EventData, EventList, UserData } from '@/constants/types';
-import { apiFetch, apiFetchAuth } from '@/api/api';
+import { EventData, UserData } from '@/constants/types';
 
 import { ShowCard } from '@/components/ui/show-card';
 import { ShowCardSkeleton } from '@/components/ui/skeleton';
 
-export function ExploreEventsForYou() {
-    const [shows, setShows] = useState<EventData[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+export function ExploreEventsForYou({ user, events }: { user: UserData | null, events: EventData[] }) {
+    const shows = useMemo(() => {
+        if (!user || events.length === 0) return [];
+        
+        let filteredShows = events;
+        const favoriteGenreIds = user.genres?.map(g => g.id.toString()) || [];
 
-    useEffect(() => {
-        const controller = new AbortController();
-        let isMounted = true;
+        if (favoriteGenreIds.length > 0) {
+            filteredShows = filteredShows.filter(event =>
+                event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()))
+            );
+        }
 
-        const fetchData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                // Fetch user and events in parallel
-                const [userRes, eventsRes] = await Promise.all([
-                    apiFetchAuth<{ user: UserData }>('api/users/', { signal: controller.signal }),
-                    apiFetch<EventList>('api/events?limit=50', { signal: controller.signal }),
-                ]);
-                const favoriteGenreIds = userRes.user.genres?.map(g => g.id.toString()) || [];
-
-                if (isMounted) {
-                    let filteredShows = eventsRes.events || [];
-
-                    if (favoriteGenreIds.length > 0) {
-                        filteredShows = filteredShows.filter(event =>
-                            event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()))
-                        );
-                    }
-
-                    const favoriteVenueIds = userRes.user.venues?.map(v => v.id.toString()) || [];
-                    if (favoriteVenueIds.length > 0 && filteredShows.length) {
-                        const venueFilteredShows = filteredShows.filter(event =>
-                            favoriteVenueIds.includes(event.venue_id.toString())
-                        );
-                        if (venueFilteredShows.length >= 8) {
-                            filteredShows = venueFilteredShows;
-                        }
-                    }
-
-                    setShows(filteredShows);
-
-                    // Prefetch images for the first 5 events using expo-image cache
-                    filteredShows.slice(0, 5).forEach((e: EventData) => {
-                        if (e.image) ExpoImage.prefetch(e.image);
-                    });
-                }
-            } catch (err: any) {
-                if (isMounted && err.name !== "AbortError") {
-                    setError(err.message || "Failed to fetch events");
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+        const favoriteVenueIds = user.venues?.map(v => v.id.toString()) || [];
+        if (favoriteVenueIds.length > 0 && filteredShows.length) {
+            const venueFilteredShows = filteredShows.filter(event =>
+                favoriteVenueIds.includes(event.venue_id.toString())
+            );
+            if (venueFilteredShows.length >= 8) {
+                filteredShows = venueFilteredShows;
             }
-        };
+        }
 
-        fetchData();
+        // Prefetch images for the first 5 events
+        filteredShows.slice(0, 5).forEach((e: EventData) => {
+            if (e.image) ExpoImage.prefetch(e.image);
+        });
 
-        return () => {
-            controller.abort();
-            isMounted = false;
-        };
-    }, []);
+        return filteredShows;
+    }, [user, events]);
 
-    if (loading) return <ShowCardSkeleton />;
-    if (error) return <View className="px-4 py-2"><Text className="text-red-500">{error}</Text></View>;
     if (shows.length === 0) return <View className="px-4 py-2"><Text className="text-foreground/40 italic">No personalized events found yet. Try adding more favorite genres!</Text></View>;
 
     return (
