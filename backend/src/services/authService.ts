@@ -11,7 +11,7 @@ export const authService = {
         const authHeader = req.header("Authorization");
 
         // handle testing bypass (for non-hermetic tests)
-        if (authHeader === "TESTING_BYPASS" && NODE_ENV == "test") {
+        if (authHeader === "TESTING_BYPASS" && NODE_ENV != "production") {
             const { data: user, error } =
                 await db.users.getById(BYPASS_USER_ID);
             if (error || !user) {
