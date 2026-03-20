@@ -15,7 +15,7 @@ describe("JWT Authentication", () => {
     let test_event_id: string;
 
     beforeAll(async () => {
-        jwtToken = await generator.generateUser({ withSession: true });
+        jwtToken = (await generator.generateUser({ withSession: true })).jwt!;
         test_event_id = await generator.generateEvent();
     });
 
@@ -155,9 +155,11 @@ describe("Sign-In Business Logic", () => {
     let testUserPassword: string = generatePassword();
 
     beforeAll(async () => {
-        testUserId = await generator.generateUser({
-            password: testUserPassword,
-        });
+        testUserId = (
+            await generator.generateUser({
+                password: testUserPassword,
+            })
+        ).id;
         testUserEmail = (await userService.getUserById(testUserId)).email;
     });
 

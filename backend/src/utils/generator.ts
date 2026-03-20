@@ -1,11 +1,13 @@
 import { NODE_ENV } from "../app.js";
 import { artistService } from "../services/artistService.js";
+import { bookmarkService } from "../services/bookmarkService.js";
 import { eventService } from "../services/eventService.js";
 import { genresService } from "../services/genresService.js";
 import { userService } from "../services/userService.js";
 import { venueService } from "../services/venueService.js";
 import {
     cleanUpArtist,
+    cleanUpBookmark,
     cleanUpEvent,
     cleanUpGenre,
     cleanUpUser,
@@ -24,6 +26,7 @@ class Generator {
     generatedUsers: string[] = [];
     generatedVenues: string[] = [];
     generatedGenres: string[] = [];
+    generatedBookmarks: [string, string][] = [];
 
     constructor() {}
 
@@ -39,7 +42,7 @@ class Generator {
             throw "generator functions like generateEvent are only available in test environments";
 
         const {
-            dateRange = [0, 10],
+            dateRange = [1, 10],
             costRange = [0, 30],
             withArtist = false,
         } = props ?? {};
@@ -68,7 +71,7 @@ class Generator {
                 return id;
             })
             .catch((err) => {
-                throw new Error("Unable to generate event:\n" + String(err));
+                throw new Error("Unable to generate event:\n" + err.message);
             });
     };
 
@@ -84,7 +87,7 @@ class Generator {
                 return id;
             })
             .catch((err) => {
-                throw new Error("Unable to generate venue:\n" + String(err));
+                throw new Error("Unable to generate venue:\n" + err.message);
             });
     };
 
@@ -92,7 +95,7 @@ class Generator {
     generateUser = async (props?: {
         withSession?: boolean;
         password?: string;
-    }): Promise<string> => {
+    }): Promise<{ id: string; jwt?: string }> => {
         if (NODE_ENV != "test")
             throw "generator functions like generateUser are only available in test environments";
 
@@ -111,20 +114,24 @@ class Generator {
                     return userService
                         .signInUser(email, password)
                         .then((result) => {
-                            return result.session.access_token;
+                            console.log(
+                                "Sign-in result:",
+                                result.session.access_token,
+                            );
+                            return { id, jwt: result.session.access_token };
                         })
                         .catch((err) => {
                             throw new Error(
                                 "Unable to authenticate generated user:\n" +
-                                    String(err),
+                                    err.message,
                             );
                         });
                 }
 
-                return id;
+                return { id };
             })
             .catch((err) => {
-                throw new Error("Unable to generate user:\n" + String(err));
+                throw new Error("Unable to generate user:\n" + err.message);
             });
     };
 
@@ -140,7 +147,7 @@ class Generator {
                 return id;
             })
             .catch((err) => {
-                throw new Error("Unable to generate artist:\n" + String(err));
+                throw new Error("Unable to generate artist:\n" + err.message);
             });
     };
 
@@ -156,29 +163,78 @@ class Generator {
                 return id;
             })
             .catch((err) => {
-                throw new Error("Unable to generate artist:\n" + String(err));
+                throw new Error("Unable to generate artist:\n" + err.message);
             });
+    };
+
+    generateBookmark = async (props?: {
+        withUser?: { id: string };
+        withEvent?: string;
+        withSession?: boolean;
+    }): Promise<[{ id: string; jwt?: string }, string]> => {
+        if (NODE_ENV != "test")
+            throw "generator functions like generateBookmark are only available in test environments";
+
+        const { withSession = false } = props ?? {};
+
+        const {
+            withUser = await this.generateUser({ withSession }),
+            withEvent = await this.generateEvent(),
+        } = props ?? {};
+
+        return bookmarkService
+            .addBookmark(withUser.id, withEvent)
+            .then((_) => {
+                this.generatedBookmarks.push([withUser.id, withEvent]);
+                return [withUser, withEvent] as [
+                    { id: string; jwt?: string },
+                    string,
+                ];
+            })
+            .catch((err) => {
+                throw new Error("Unable to generate bookmark:\n" + err.message);
+            });
+    };
+
+    logBookmark = (userId: string, eventId: string) => {
+        this.generatedBookmarks.push([userId, eventId]);
     };
 
     cleanUp = async () => {
         this.generatedArtists.forEach(async (artist) => {
-            await cleanUpArtist(artist);
+            await cleanUpArtist(artist).catch((err) => {
+                console.warn("Error cleaning up artist:", err.message);
+            });
         });
 
         this.generatedEvents.forEach(async (event) => {
-            await cleanUpEvent(event);
+            await cleanUpEvent(event).catch((err) => {
+                console.warn("Error cleaning up event:", err.message);
+            });
         });
 
         this.generatedGenres.forEach(async (genre) => {
-            await cleanUpGenre(genre);
+            await cleanUpGenre(genre).catch((err) => {
+                console.warn("Error cleaning up genre:", err.message);
+            });
         });
 
         this.generatedUsers.forEach(async (user) => {
-            await cleanUpUser(user);
+            await cleanUpUser(user).catch((err) => {
+                console.warn("Error cleaning up user:", err.message);
+            });
         });
 
         this.generatedVenues.forEach(async (venue) => {
-            await cleanUpVenue(venue);
+            await cleanUpVenue(venue).catch((err) => {
+                console.warn("Error cleaning up venue:", err.message);
+            });
+        });
+
+        this.generatedBookmarks.forEach(async ([userId, eventId]) => {
+            await cleanUpBookmark(userId, eventId).catch((err) => {
+                console.warn("Error cleaning up bookmark:", err.message);
+            });
         });
     };
 }

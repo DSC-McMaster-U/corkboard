@@ -38,4 +38,18 @@ const cleanUpVenue = async (id: string) => {
     await db.venues.deleteById(id);
 };
 
-export { cleanUpUser, cleanUpArtist, cleanUpEvent, cleanUpGenre, cleanUpVenue };
+const cleanUpBookmark = async (userId: string, eventId: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpBookmark are only available in test environments";
+
+    await db.bookmarks.delete(userId, eventId);
+};
+
+export {
+    cleanUpUser,
+    cleanUpArtist,
+    cleanUpEvent,
+    cleanUpGenre,
+    cleanUpVenue,
+    cleanUpBookmark,
+};
