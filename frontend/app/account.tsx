@@ -190,7 +190,7 @@ export default function AccountPage() {
     router.replace('/(auth)/login');
   }
 
-  // allow user to upload a profile photo
+  // allow user to upload a profile photo 
   const pickProfilePhoto = async () => {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -206,15 +206,57 @@ export default function AccountPage() {
     aspect: [1, 1],
   });
 
-  if (!res.canceled) {
-    const uri = res.assets[0]?.uri ?? null;
+  if (res.canceled) return;
 
-    setProfileImageUri(uri);
+  const asset = res.assets[0];
+  const uri = asset.uri;
 
-    // update userData directly so preview updates immediately
-    setUserData(prev =>
-      prev ? { ...prev, profile_picture: uri } : prev
-    );
+  try {
+
+    // create FormData constructor (allows for file uploading)
+    const formData = new FormData();
+
+    formData.append("image", {
+      uri,
+      name: "profile.jpg",
+      type: "image/jpeg",
+    } as any);
+
+    // upload image to backend
+    type ImageUploadResponse = {
+      success: boolean;
+      url: string;
+      filename: string;
+    };
+
+    const uploadRes = await apiFetchAuth<ImageUploadResponse>("api/images/users", {
+      method: "POST",
+      body: formData,
+    });
+
+    const imageUrl = uploadRes.url;
+
+    // Save URL to user
+    if (userData) {
+      await apiFetchAuth(`api/users/${userData.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: userData.name,
+          username: userData.username,
+          bio: userData.bio,
+          profile_picture: imageUrl,
+        }),
+      });
+
+      // Update account page frontend
+      setUserData(prev =>
+        prev ? { ...prev, profile_picture: imageUrl } : prev
+      );
+    }
+
+  } catch (err) {
+    console.error("Image upload failed:", err);
+    alert("Failed to upload image");
   }
 };
     
