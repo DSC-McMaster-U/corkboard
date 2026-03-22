@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/header';
 import { UserData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from "expo-image-picker";
 
 type TagProps<T> = {
   placeholder: string;
@@ -28,7 +29,6 @@ function TagInput<T>({ placeholder, endpoint, maxDropdownHeight = 100, tags, get
 
   // prevent duplicates
   const normalizedTags = useMemo(() => new Set(tags.map(t => getTagName(t).toLowerCase())), [tags]);
-
   
   // Fetch all options from backend
     useEffect(() => {
@@ -139,6 +139,7 @@ type UserDataResponse = {
 }
 
 export default function AccountPage() {
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -184,11 +185,38 @@ export default function AccountPage() {
   }
 };
 
- 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('authToken');
     router.replace('/(auth)/login');
   }
+
+  // allow user to upload a profile photo
+  const pickProfilePhoto = async () => {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (!perm.granted) {
+    alert("Please allow photo access to upload a profile picture.");
+    return;
+  }
+
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.8,
+    aspect: [1, 1],
+  });
+
+  if (!res.canceled) {
+    const uri = res.assets[0]?.uri ?? null;
+
+    setProfileImageUri(uri);
+
+    // update userData directly so preview updates immediately
+    setUserData(prev =>
+      prev ? { ...prev, profile_picture: uri } : prev
+    );
+  }
+};
     
   return (
     
@@ -200,28 +228,49 @@ export default function AccountPage() {
         <AppHeader title="Account" showBack showProfile={false} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="always">
-        {/* Avatar */}
+        {/* Avatar: profile photo that can be changed */}
         <View className="items-center mt-10"> 
-          <View className="w-36 h-36 rounded-full bg-blue-400 items-center justify-center">
-            {userData && 
-              <Image
-                source={{ uri: userData?.profile_picture }}
-                className="w-36 h-36 rounded-full border-2 border-black shadow-lg"
-              />
-            }
+          <View className="items-center mt-10">
+            <TouchableOpacity
+              onPress={pickProfilePhoto}
+              className="w-36 h-36 rounded-full bg-blue-400 items-center justify-center overflow-hidden"
+            >
+              {userData?.profile_picture ? (
+                <Image
+                  source={{ uri: userData.profile_picture }}
+                  className="w-36 h-36 rounded-full border-2 border-black"
+                />
+              ) : (
+                <Ionicons name="person" size={60} color="white" />
+              )}
+            </TouchableOpacity>
+
+            <Text className="text-xs text-gray-500 mt-2">
+              Tap to change profile photo
+            </Text>
           </View>
         </View>
 
         {/* Form */}
         <View className="px-6 mt-6">
           <Label text="Username" />
-          <Input placeholder={loading ? "Loading username..." : userData?.name || "Enter username"} />
+          <Input
+            value={userData?.username ?? ""}
+            placeholder={loading ? "Loading username..." : "Enter username"}
+            onChangeText={(text) =>
+              setUserData(prev => prev ? { ...prev, username: text } : prev)
+            }
+          />
 
           <Label text="Bio" />
           <Input
-            placeholder={loading ? "Loading user bio..." : userData?.bio || "Tell us about yourself"}
+            value={userData?.bio ?? ""}
+            placeholder="Tell us about yourself"
             multiline
             height={80}
+            onChangeText={(text) =>
+              setUserData(prev => prev ? { ...prev, bio: text } : prev)
+            }
           />
           <Text className="text-right text-xs text-gray-500 mt-1">
             200 Characters
@@ -299,14 +348,20 @@ function Input({
   multiline = false,
   height = 48,
   editable = true,
+  value,
+  onChangeText,
 }: {
   placeholder: string;
   multiline?: boolean;
   height?: number;
   editable?: boolean;
+  value?: string;
+  onChangeText?: (text: string) => void;
 }) {
   return (
     <TextInput
+      value={value}
+      onChangeText={onChangeText}
       placeholder={placeholder}
       multiline={multiline}
       editable={editable}
