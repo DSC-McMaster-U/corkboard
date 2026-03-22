@@ -513,6 +513,16 @@ describe("GET /api/users/suggested-events", () => {
     });
 });
 
+describe("PUT /api/users/:userId", () => {});
+
+describe("POST /api/users/addGenre", () => {});
+
+describe("DELETE /api/users/removeGenre", () => {});
+
+describe("POST /api/users/addVenue", () => {});
+
+describe("DELETE /api/users/removeVenue", () => {});
+
 afterAll(async () => {
     await cleanUpUser(existing_user.id);
 

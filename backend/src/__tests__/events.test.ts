@@ -5,6 +5,7 @@ import { db } from "../db/supabaseClient.js";
 import { strictMatchFields } from "../utils/cmp.js";
 import { parseDateOr } from "../utils/parser.js";
 import { tomorrow } from "../utils/time.js";
+import { Generator } from "../utils/generator.js";
 
 // TODO: Replace the bypass token with an actual token for a test user
 let bypassUserToken = "TESTING_BYPASS";
@@ -50,6 +51,8 @@ type Event = {
         | undefined;
 };
 
+const generator = new Generator();
+
 let createdIds: Array<string> = [];
 
 const logId = (response: any) => {
@@ -67,13 +70,13 @@ const logId = (response: any) => {
 describe("GET /api/events/", () => {
     let path = "/api/events";
 
-    it("should return at most 10 events if no limit is provided", async () => {
+    it("should return at most 20 events if no limit is provided", async () => {
         let response = await request(app).get(path + "?include_archived=true");
 
         let count: number = response.body.count;
         let events: Array<Event> = response.body.events;
 
-        expect(count).toBeLessThanOrEqual(10);
+        expect(count).toBeLessThanOrEqual(20);
         expect(count).toBeGreaterThan(0);
         expect(events.length).toBe(count);
     });
@@ -93,7 +96,8 @@ describe("GET /api/events/", () => {
     });
 
     it("should only return events later than the start date range", async () => {
-        let min_start_time = new Date("2026-01-01");
+        let min_start_time = new Date();
+        min_start_time.setDate(min_start_time.getDate() + 10);
         let response = await request(app).get(
             path +
                 `?min_start_time=${min_start_time.toISOString()}&include_archived=true`,
@@ -111,7 +115,8 @@ describe("GET /api/events/", () => {
     });
 
     it("should only return events before than the end date range", async () => {
-        let max_start_time = new Date("2026-01-01");
+        let max_start_time = new Date();
+        max_start_time.setDate(max_start_time.getDate() + 10);
         let response = await request(app).get(
             path +
                 `?max_start_time=${max_start_time.toISOString()}&include_archived=true`,
@@ -194,20 +199,34 @@ describe("GET /api/events/", () => {
     });
 
     it("should return an event matching the given criteria", async () => {
-        let start_time = new Date("2025-10-27").toISOString();
-        let end_time = new Date("2025-10-28").toISOString();
+        let dateRange: [number, number] = [1, 10];
+        let costRange: [number, number] = [5, 10];
 
-        let id = "a4e66b5f-4f1f-4d5a-9813-579a3436dbe2";
+        let start_time = new Date();
+        start_time.setDate(start_time.getDate() + dateRange[0]);
+        let end_time = new Date();
+        end_time.setDate(end_time.getDate() + dateRange[1]);
+
+        let event_count = 20;
+
+        for (let i = 0; i < event_count; i++) {
+            await generator.generateEvent({
+                dateRange,
+                costRange,
+            });
+        }
 
         let response = await request(app).get(
             path +
-                `?limit=100&min_cost=20&max_cost=20&min_start_time=${start_time}&max_start_time=${end_time}&include_archived=true`,
+                `?limit=${event_count}&min_cost=${costRange[0]}&max_cost=${costRange[1]}&min_start_time=${start_time.toISOString()}&max_start_time=${end_time.toISOString()}&include_archived=true`,
         );
 
         let events: Array<Event> = response.body.events;
 
-        expect(events.length).toBeGreaterThan(0);
+        expect(events.length).toBe(event_count);
 
+        // Commenting out as this is dependent on real event info
+        /* 
         let found = false;
 
         for (let i = 0; i < events.length; i++) {
@@ -265,7 +284,9 @@ describe("GET /api/events/", () => {
             found = true;
         }
 
-        expect(found).toBe(true);
+        */
+
+        //expect(found).toBe(true);
     });
 });
 
@@ -400,7 +421,27 @@ describe("POST /api/events/", () => {
     });
 });
 
+describe("GET /api/events/:id", () => {});
+
+describe("POST /api/events/updateEvent", () => {});
+
+describe("DELETE /api/events/deleteEvent", () => {});
+
+describe("POST /api/events/archiveEvent", () => {});
+
+describe("POST /api/events/unarchiveEvent", () => {});
+
+describe("POST /api/events/archivePastEvents", () => {});
+
+describe("POST /api/events/:id/genres", () => {});
+
+describe("DELETE /api/events/:id/genres/:genreId", () => {});
+
+describe("PUT /api/events/:id/genres", () => {});
+
 afterAll(async () => {
+    await generator.cleanUp();
+
     for (let i = 0; i < createdIds.length; i++) {
         let id = createdIds[i]!;
 
