@@ -53,6 +53,7 @@ router.post(
                 res.status(200).json({ success: true });
             })
             .catch((err) => {
+                console.log("Create bookmark error:", err)
                 res.status(500).json({ error: err });
             });
     }
@@ -85,6 +86,12 @@ router.delete(
                 res.status(200).json({ success: true });
             })
             .catch((err) => {
+                // Return 204 for not found
+                if (err == new Error("Bookmark not found")) {
+                    res.status(204).json({ success: true });
+                    return
+                }
+
                 console.error('Error removing bookmark:', err);
                 res.status(500).json({ error: err });
             });

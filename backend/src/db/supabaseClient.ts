@@ -431,7 +431,7 @@ export const db = {
                         venue_type,
                         description,
                         link
-                    )
+                    ),
                     artists (
                         id,
                         name,
@@ -653,6 +653,10 @@ export const db = {
                 })
                 .select()
                 .single(),
+
+        // delete artist by ID
+        deleteById: (id: string) =>
+            supabase.from("artists").delete().eq("id", id),
     },
     userEventDrafts: {
         getAll: (

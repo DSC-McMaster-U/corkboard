@@ -1,3 +1,4 @@
+import { NODE_ENV } from "../app.js";
 import { db } from "../db/supabaseClient.js";
 import type { Request, Response } from "express";
 
@@ -10,10 +11,9 @@ export const authService = {
         const authHeader = req.header("Authorization");
 
         // handle testing bypass (for non-hermetic tests)
-        if (authHeader === "TESTING_BYPASS") {
-            const { data: user, error } = await db.users.getById(
-                BYPASS_USER_ID
-            );
+        if (authHeader === "TESTING_BYPASS" && NODE_ENV != "production") {
+            const { data: user, error } =
+                await db.users.getById(BYPASS_USER_ID);
             if (error || !user) {
                 authService.setUser(res, undefined);
             } else {
@@ -51,7 +51,7 @@ export const authService = {
 
             // get user from database using Supabase auth user ID
             const { data: dbUser, error: dbError } = await db.users.getById(
-                authUser.id
+                authUser.id,
             );
 
             if (dbError || !dbUser) {

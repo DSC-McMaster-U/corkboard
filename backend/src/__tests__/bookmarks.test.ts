@@ -1,19 +1,22 @@
 import request from "supertest";
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import app from "../app.js";
-
-// TODO: Replace the bypass token with an actual token for a test user
-let bypassUserToken = "TESTING_BYPASS";
-
-// Real event IDs from database for testing
-const REAL_EVENT_ID = "2430b29f-0bd3-4d49-9b70-9c8a0b26bf8e"; // "name"="Test Event"
-const REAL_EVENT_ID_2 = "93afb249-5784-4da6-aa42-c35ff8d2286f"; // "name"="Test Event 2"
+import { Generator } from "../utils/generator.js";
 
 // Invalid event ID
 const INVALID_EVENT_ID = "abcdefgh-ijkl-mnop-qrst-uvwxyzabcdef";
 
+const generator = new Generator();
+
 describe("GET /api/bookmarks/", () => {
     let path = "/api/bookmarks/";
+    let USER_JWT: string;
+
+    beforeAll(async () => {
+        USER_JWT =
+            "Bearer " +
+            (await generator.generateUser({ withSession: true })).jwt!;
+    });
 
     it(`should return status 401 if no authorization is passed`, async () => {
         const response = await request(app).get(path);
@@ -22,14 +25,14 @@ describe("GET /api/bookmarks/", () => {
 
     it(`should return status 500 if an invalid user is passed`, async () => {
         console.warn(
-            "This test cannot be implemented until JWT decryption is added."
+            "This test cannot be implemented until JWT decryption is added.",
         );
     });
 
     it("should return 200 for a valid user with the appropriate bookmarks", async () => {
         const response = await request(app)
             .get(path)
-            .set("Authorization", bypassUserToken);
+            .set("Authorization", USER_JWT);
 
         expect(response.statusCode).toBe(200);
     });
@@ -37,6 +40,17 @@ describe("GET /api/bookmarks/", () => {
 
 describe("POST /api/bookmarks", () => {
     let path = "/api/bookmarks";
+    let REAL_EVENT_ID: string;
+    let USER_JWT: string;
+    let USER_ID: string;
+
+    beforeAll(async () => {
+        REAL_EVENT_ID = await generator.generateEvent();
+        let user = await generator.generateUser({ withSession: true });
+
+        USER_JWT = "Bearer " + user.jwt!;
+        USER_ID = user.id;
+    });
 
     it("should return status 401 if no authorization is passed", async () => {
         const response = await request(app)
@@ -48,7 +62,7 @@ describe("POST /api/bookmarks", () => {
     it("should return status 400 if no event id is passed", async () => {
         const response = await request(app)
             .post(path)
-            .set("Authorization", bypassUserToken)
+            .set("Authorization", USER_JWT)
             .send({});
 
         expect(response.statusCode).toBe(400);
@@ -57,7 +71,7 @@ describe("POST /api/bookmarks", () => {
     it("should return status 500 if an invalid event id is passed", async () => {
         const response = await request(app)
             .post(path)
-            .set("Authorization", bypassUserToken)
+            .set("Authorization", USER_JWT)
             .send({ eventId: INVALID_EVENT_ID });
 
         expect(response.statusCode).toBe(500);
@@ -77,15 +91,27 @@ describe("POST /api/bookmarks", () => {
         // note: this test will create a bookmark row in the database
         const response = await request(app)
             .post(path)
-            .set("Authorization", bypassUserToken)
+            .set("Authorization", USER_JWT)
             .send({ eventId: REAL_EVENT_ID });
 
         expect(response.statusCode).toBe(200);
+
+        generator.logBookmark(USER_ID, REAL_EVENT_ID);
     });
 });
 
 describe("DELETE /api/bookmarks", () => {
     let path = "/api/bookmarks";
+    let bookmarked_event: string;
+    let non_bookmarked_event: string;
+    let user_jwt: string;
+
+    beforeAll(async () => {
+        let bookmark = await generator.generateBookmark({ withSession: true });
+        bookmarked_event = bookmark[1];
+        non_bookmarked_event = await generator.generateEvent();
+        user_jwt = "Bearer " + bookmark[0].jwt!;
+    });
 
     it("should return status 401 if no authorization is passed", async () => {
         const response = await request(app)
@@ -97,7 +123,7 @@ describe("DELETE /api/bookmarks", () => {
     it("should return status 400 if no event id is passed", async () => {
         const response = await request(app)
             .delete(path)
-            .set("Authorization", bypassUserToken)
+            .set("Authorization", user_jwt)
             .send({});
 
         expect(response.statusCode).toBe(400);
@@ -106,7 +132,7 @@ describe("DELETE /api/bookmarks", () => {
     it("should return status 500 if an invalid event id is passed", async () => {
         const response = await request(app)
             .delete(path)
-            .set("Authorization", bypassUserToken)
+            .set("Authorization", user_jwt)
             .send({ eventId: INVALID_EVENT_ID });
 
         expect(response.statusCode).toBe(500);
@@ -125,20 +151,22 @@ describe("DELETE /api/bookmarks", () => {
     it("should return status 500 if the user does not have this event bookmarked", async () => {
         const response = await request(app)
             .delete(path)
-            .set("Authorization", bypassUserToken)
-            .send({ eventId: REAL_EVENT_ID_2 });
+            .set("Authorization", user_jwt)
+            .send({ eventId: non_bookmarked_event });
 
         expect(response.statusCode).toBe(500);
     });
 
     it("should return status 200 for a valid user and event", async () => {
-        // note: this test will delete a bookmark row from the database
-        // assumes the bookmark was created by the POST test above
         const response = await request(app)
             .delete(path)
-            .set("Authorization", bypassUserToken)
-            .send({ eventId: REAL_EVENT_ID });
+            .set("Authorization", user_jwt)
+            .send({ eventId: bookmarked_event });
 
         expect(response.statusCode).toBe(200);
     });
+});
+
+afterAll(() => {
+    generator.cleanUp();
 });
