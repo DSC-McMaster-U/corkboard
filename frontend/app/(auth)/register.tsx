@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ScrollView, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from '@/api/api';
@@ -133,7 +133,18 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.outer}>
-          <View style={styles.card}>
+
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/corkboard-logo-transparent.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.brandTitle}>Corkboard</Text>
+          <Text style={styles.brandSubtitle}>Discover live music near you</Text>
+        </View>
+
+        <View style={styles.card}>
             <Text style={styles.cardTitle}>Register your{"\n"}account</Text>
 
             <View style={styles.inputWrap}>
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: COLORS.textOnDark,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "900",
     textAlign: "center",
     marginBottom: 12,
@@ -379,5 +390,25 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 12,
     lineHeight: 16,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  logo: {
+    width: 110,
+    height: 110,
+    marginBottom: 8,
+  },
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#411900",
+    marginBottom: 4,
+  },
+  brandSubtitle: {
+    fontSize: 16,
+    color: "#4b0000",
+    textAlign: "center",
   },
 });
