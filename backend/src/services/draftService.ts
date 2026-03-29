@@ -165,6 +165,7 @@ export const draftService = {
             source_url: draft.source_url ?? undefined,
             image: draft.image ?? undefined,
             artist_id: artist_id ?? undefined,
+            submitted_by: draft.user_id,
         });
         if (eventError) throw eventError;
         if (!event) throw new Error("Failed to create event");

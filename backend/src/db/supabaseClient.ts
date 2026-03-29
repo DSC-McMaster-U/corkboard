@@ -177,6 +177,7 @@ export const db = {
             source_url: string | undefined;
             image: string | undefined;
             artist_id?: string | undefined;
+            submitted_by?: string | undefined;
         }) => supabase.from("events").insert(eventData).select().single(),
 
         // delete event by ID

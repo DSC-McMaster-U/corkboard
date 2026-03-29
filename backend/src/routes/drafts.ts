@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import { parseDateOr, parseFloatOr, parseIntOr } from "../utils/parser.js";
 import { draftService } from "../services/draftService.js";
+import { authService } from "../services/authService.js";
 
 const router = express.Router();
 
@@ -149,6 +150,75 @@ router.get("/:id", async (req: Request, res: Response) => {
             res.status(404).json({ error: "Draft not found" });
         });
 });
+
+// PATCH /api/drafts/:id - Edit a user-uploaded draft (owner only)
+router.patch(
+    "/:id",
+    authService.validateToken,
+    async (req: Request, res: Response) => {
+        const user = authService.getUser(res);
+
+        if (user == undefined) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { id } = req.params;
+
+        if (!id) {
+            res.status(400).json({ error: "Draft ID is missing" });
+            return;
+        }
+
+        // Verify draft exists and belongs to this user
+        let draft;
+        try {
+            draft = await draftService.getDraftByID(id);
+        } catch {
+            res.status(404).json({ error: "Draft not found" });
+            return;
+        }
+
+        if (draft.user_id !== user.id) {
+            res.status(403).json({ error: "Forbidden" });
+            return;
+        }
+
+        const body = req.body ?? {};
+
+        if (body.start_time !== undefined) {
+            const parsed_date = parseDateOr(body.start_time, new Date("1970-01-01"));
+            if (parsed_date.getTime() <= new Date().getTime()) {
+                res.status(400).json({ error: "Invalid start time" });
+                return;
+            }
+        }
+
+        // Only include fields that were explicitly provided in the request
+        const patch: Parameters<typeof draftService.updateDraftByID>[1] = {};
+        const stringFields = [
+            "title", "description", "start_time", "source_url", "image",
+            "venue_id", "venue_name", "venue_address", "venue_type",
+            "artist_id", "artist_name", "artist_bio", "artist_image",
+        ] as const;
+        for (const field of stringFields) {
+            if (body[field] !== undefined) patch[field] = body[field];
+        }
+        if (body.cost !== undefined) patch.cost = parseFloatOr(body.cost, 0);
+        if (body.venue_latitude !== undefined) patch.venue_latitude = parseFloatOr(body.venue_latitude, 0);
+        if (body.venue_longitude !== undefined) patch.venue_longitude = parseFloatOr(body.venue_longitude, 0);
+
+        draftService
+            .updateDraftByID(id, patch)
+            .then((result) => {
+                res.status(200).json({ id: result.id, success: true });
+            })
+            .catch((err) => {
+                console.error("Error updating draft:", err);
+                res.status(500).json({ success: false, error: err?.message ?? String(err) });
+            });
+    }
+);
 
 // DELETE /api/drafts/:id - Delete draft by ID
 router.delete("/:id", async (req: Request, res: Response) => {
