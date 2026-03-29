@@ -199,10 +199,11 @@ export default function AccountPage() {
     return;
   }
 
+  // open the phone's gallery and let the user pick and crop a photo
   const res = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
-    quality: 0.8,
+    quality: 0.5,
     aspect: [1, 1],
   });
 
@@ -211,32 +212,40 @@ export default function AccountPage() {
   const asset = res.assets[0];
   const uri = asset.uri;
 
+  console.log("Picked image URI:", uri);
+
   try {
-
-    // create FormData constructor (allows for file uploading)
+    // Build FormData
     const formData = new FormData();
-
     formData.append("image", {
       uri,
       name: "profile.jpg",
       type: "image/jpeg",
     } as any);
 
-    // upload image to backend
-    type ImageUploadResponse = {
-      success: boolean;
-      url: string;
-      filename: string;
-    };
+    // upload image URL to backend on android emulator
+    const uploadUrl = "http://10.0.2.2:3000/api/images/users";
 
-    const uploadRes = await apiFetchAuth<ImageUploadResponse>("api/images/users", {
+    // Use fetch directly (FormData + auth header)
+    const token = await AsyncStorage.getItem("authToken");
+    const uploadRes = await fetch(uploadUrl, {
       method: "POST",
       body: formData,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
     });
 
-    const imageUrl = uploadRes.url;
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(errText || "Upload failed");
+    }
 
-    // Save URL to user
+    const data = await uploadRes.json();
+    const imageUrl = data.url;
+    console.log("Uploaded image URL:", imageUrl);
+
+    // Update user profile
     if (userData) {
       await apiFetchAuth(`api/users/${userData.id}`, {
         method: "PUT",
@@ -248,15 +257,13 @@ export default function AccountPage() {
         }),
       });
 
-      // Update account page frontend
       setUserData(prev =>
         prev ? { ...prev, profile_picture: imageUrl } : prev
       );
     }
-
   } catch (err) {
     console.error("Image upload failed:", err);
-    alert("Failed to upload image");
+    alert("Failed to upload image. Make sure your backend is running.");
   }
 };
     
