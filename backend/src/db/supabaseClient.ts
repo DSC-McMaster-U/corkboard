@@ -60,7 +60,8 @@ export const db = {
                         latitude,
                         longitude,
                         description,
-                        link
+                        link,
+                        image
                     ),
                     event_genres (
                         genre_id,
@@ -145,7 +146,8 @@ export const db = {
                     latitude,
                     longitude,
                     description,
-                    link
+                    link,
+                    image
                 ),
                 event_genres (
                     genre_id,
@@ -250,6 +252,71 @@ export const db = {
         deleteForVenue: (venueId: string) =>
             supabase.from("events").delete().eq("venue_id", venueId),
 
+        getUserUploadedDrafts: (
+            limit: number,
+            min_start_time: string,
+            max_start_time: string,
+            min_cost: number,
+            max_cost: number,
+        ) => {
+            let query = supabase
+                .from("events")
+                .select(
+                    `
+                    *,
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude,
+                        image
+                    )
+                    event_genres (
+                        genre_id,
+                        genres (
+                            id,
+                            name
+                        )
+                    )
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                    users (
+                        id,
+                        email,
+                        name,
+                        created_at,
+                        username,
+                        profile_picture,
+                        bio
+                    )
+                `,
+                )
+                .gte("start_time", min_start_time)
+                .lte("start_time", max_start_time);
+
+            // handle NULL costs: only filter by cost if user specified a range
+            const isDefaultCostRange =
+                min_cost === 0 && max_cost === Number.MAX_VALUE;
+            if (!isDefaultCostRange) {
+                // apply cost range filter
+                // billy's note: NULL costs will be excluded when filtering (standard behavior)
+                query = query.or(
+                    `cost.is.null,and(cost.gte.${min_cost},cost.lte.${max_cost}))`,
+                );
+            }
+
+            // ONLY user uploaded events
+            query = query.eq("status", "draft"); //.eq("source_type", "user")  change after db migration
+
+            return query.limit(limit);
+        },
+
         // add a genre to an event
         addGenre: (eventId: string, genreId: string) =>
             supabase
@@ -323,6 +390,7 @@ export const db = {
             longitude: number | undefined;
             description: string | undefined;
             link: string | undefined;
+            image: string | undefined;
         }) => supabase.from("venues").insert(venueData).select().single(),
 
         // deletes a venue, mainly used in test cases
@@ -357,7 +425,8 @@ export const db = {
                             latitude,
                             longitude,
                             description,
-                            link
+                            link,
+                            image
                         ),
                         event_genres (
                             genre_id,
@@ -431,8 +500,9 @@ export const db = {
                         address,
                         venue_type,
                         description,
-                        link
-                    ),
+                        link,
+                        image
+                    )
                     artists (
                         id,
                         name,

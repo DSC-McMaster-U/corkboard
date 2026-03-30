@@ -154,6 +154,17 @@
 
 **Note:** Added in migration 017.
 
+### `image` (varchar(255), nullable)
+**Purpose:** Supabase Storage URL for venue image.
+
+**Format:** Full Supabase Storage public URL (e.g. `"https://<project-id>.supabase.co/storage/v1/object/public/venues/venue-123.jpg"`)
+
+**Examples:**
+- `"https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/venues/the-casbah.jpg"`
+- `NULL` (no image provided)
+
+**Note:** Added in migration 019.
+
 ## Users Table - Account Fields
 
 ### `username` (varchar(100), nullable, UNIQUE)
@@ -423,6 +434,7 @@ All schema changes are tracked in `supabase/migrations/`:
 - `016_add_user_to_source_type_enum.sql` - Add `'user'` value to `source_type_enum` for user-created events
 - `017_add_description_and_link_to_venues.sql` - Add `description` and `link` columns to venues table
 - `018_create_user_event_drafts_table.sql` - Create `user_event_drafts` table for storing user-created event drafts
+- `019_add_image_to_venues.sql` - Add `image` column to venues table for Supabase Storage URLs
 
 **To apply a migration:**
 1. Review migration file
