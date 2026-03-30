@@ -56,11 +56,16 @@ export async function detectGenresAsync(artist: string | null, title: string, de
 
     // Fall back to iTunes API if artist is known
     if (artist) {
-        // Strip out openers ("with...") and tour subtitles (": The Tour", "- The Tour")
-        const cleanArtist = artist.split(/ with |:| - |\|/i)[0]?.trim();
-        if (cleanArtist) {
-            const remoteGenres = await fetchArtistGenres(cleanArtist);
-            if (remoteGenres.length > 0) return remoteGenres;
+        const parts = artist.split(/ with |:| - |\|/i).map(p => p.trim()).filter(p => p);
+
+        for (const part of parts) {
+            const cleanPart = part.replace(/\b(tribute|cover|rumours)\b/gi, "").trim();
+            if (cleanPart) {
+                const remoteGenres = await fetchArtistGenres(cleanPart);
+                if (remoteGenres.length > 0 && !remoteGenres.includes("Documentary")) {
+                    return remoteGenres;
+                }
+            }
         }
     }
 

@@ -5,7 +5,7 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { detectGenres } from "../utils/genreDetector.js";
+import { detectGenresAsync } from "../utils/genreDetector.js";
 import type { Event } from "../utils/types.js";
 
 
@@ -149,7 +149,7 @@ export async function scrapeWebsite(url: string) {
       const cost = extractCost($detail);
 
       // detect genres
-      const genres = detectGenres(title, snippet);
+      const genres = await detectGenresAsync(title || null, title, snippet);
 
       results.push({
         title: title || "Untitled Event",

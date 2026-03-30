@@ -5,10 +5,7 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { eventService } from "../services/eventService.js";
-import e from "express";
-import { artistService } from "../services/artistService.js";
-import { detectGenres } from "../utils/genreDetector.js";
+import { detectGenresAsync } from "../utils/genreDetector.js";
 import type { Event } from "../utils/types.js";
 
 
@@ -148,7 +145,7 @@ export async function scrapeWebsite(url: string) {
         const artist = withLines.length ? `${title} ${withLines.join(" ")}` : title;
 
         // genre detection
-        const genres = detectGenres(title, description);
+        const genres = await detectGenresAsync(artist || null, title, description);
 
         // image - use a default image for now
         const image = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/millshardware.jpg";

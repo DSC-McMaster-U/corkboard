@@ -5,13 +5,8 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { eventService } from "../services/eventService.js";
-import e from "express";
-import { artistService } from "../services/artistService.js";
 import { detectGenresAsync } from "../utils/genreDetector.js";
 import type { Event } from "../utils/types.js";
-
-
 
 function cleanText(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -140,7 +135,7 @@ export async function scrapeWebsite(url: string) {
         );
       };
       const descriptionLines = lines.filter(l =>
-        !isBoilerplate(l) && 
+        !isBoilerplate(l) &&
         !withLines.includes(l) &&
         !dateLines.includes(l)
       );
@@ -180,5 +175,5 @@ export async function scrapeBridgeworks() {
   return data;
 }
 
-const data = await scrapeBridgeworks();
-console.log(data);
+//const data = await scrapeBridgeworks();
+//console.log(data);
