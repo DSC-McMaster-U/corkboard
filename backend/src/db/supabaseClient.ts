@@ -129,7 +129,7 @@ export const db = {
                 ingestion_status,
                 artist_id,
                 image,
-            }),
+            }).select().single(),
 
         // get events by id
         getById: (eventId: string) =>
@@ -220,7 +220,7 @@ export const db = {
             supabase
                 .from("events")
                 .select(
-                    "id, venue_id, start_time, title, description, cost, source_url, artist_id, image, status, source_type, ingestion_status",
+                    "id, venue_id, start_time, title, description, cost, source_url, artist_id, image, status, source_type, ingestion_status, event_genres(genre_id, genres(name))",
                 )
                 .eq("venue_id", venue_id)
                 .gte("start_time", min_start_time)
@@ -676,7 +676,7 @@ export const db = {
 
         // get genre by name
         getByName: (name: string) =>
-            supabase.from("genres").select("*").eq("name", name).single(), // Changed to .single() from maybeSingle() for consistent erroring
+            supabase.from("genres").select("*").eq("name", name).maybeSingle(),
 
         // create genre
         create: (name: string) =>

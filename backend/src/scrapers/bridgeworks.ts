@@ -5,20 +5,8 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { eventService } from "../services/eventService.js";
-import e from "express";
-import { artistService } from "../services/artistService.js";
-
-
-type Event = {
-  title: string;
-  description: string;
-  start_time: Date;
-  cost?: number | undefined;
-  source_url: string;
-  image: string;
-  artist?: string;
-};
+import { detectGenresAsync } from "../utils/genreDetector.js";
+import type { Event } from "../utils/types.js";
 
 function cleanText(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -82,82 +70,96 @@ export async function scrapeWebsite(url: string) {
     const results: Event[] = [];
 
     const ctas = cheerioObj("a").filter((_, a) => {
-        const t = cleanText(cheerioObj(a).text()).toUpperCase();
-        return t === "GET TICKETS" || t === "SOLD OUT";
+      const t = cleanText(cheerioObj(a).text()).toUpperCase();
+      return t === "GET TICKETS" || t === "SOLD OUT";
     }).toArray();
 
     // collect lines by walking backwards from each CTA
     // stop when hit the title <p class="sqsrte-large">
     for (const a of ctas) {
-        const $a = cheerioObj(a);
-        const block: string[] = [];
-        let node = $a.parent().prev();
-        let safety = 0;
-        while (node.length && safety < 40) {
-            safety++;
-            if (node.is("p")) {
-                const text = cleanText((node.text()));
-                if (text) {
-                    const isTitle = node.hasClass("sqsrte-large");
-                    block.push(text);
-                    if (isTitle) break;
-                }
-            }
-            node = node.prev();
+      const $a = cheerioObj(a);
+      const block: string[] = [];
+      let node = $a.parent().prev();
+      let safety = 0;
+      while (node.length && safety < 40) {
+        safety++;
+        if (node.is("p")) {
+          const text = cleanText((node.text()));
+          if (text) {
+            const isTitle = node.hasClass("sqsrte-large");
+            block.push(text);
+            if (isTitle) break;
+          }
         }
-        block.reverse();
-        if (!block.length) continue;
-        // block[0] should be title
+        node = node.prev();
+      }
+      block.reverse();
+      if (!block.length) continue;
+      // block[0] should be title
 
 
-        // heuristics:
-        // first line, given by <p class="sqsrte-large"> is the title (block[0])
-        // date line contains " •  and a year"
-        // price line contains "$"
-        // source_url is from the CTA link href
-        // artist is also title + line starting with "with " if present
-        // description is each line separated by newline except title, date, price
+      // heuristics:
+      // first line, given by <p class="sqsrte-large"> is the title (block[0])
+      // date line contains " •  and a year"
+      // price line contains "$"
+      // source_url is from the CTA link href
+      // artist is also title + line starting with "with " if present
+      // description is each line separated by newline except title, date, price
 
-        // get title, separate from non-title lines
-        const title = block[0] ?? "Untitled Event";
-        const lines = block.map(l => l.trim()).filter(l => l);
+      // get title, separate from non-title lines
+      const title = block[0] ?? "Untitled Event";
+      const lines = block.slice(1).map(l => l.trim()).filter(l => l);
 
-        // find source_url
-        const href = $a.attr("href") ?? url;
-        const source_url = href.startsWith("http") ? href : new URL(href, url).toString();
+      // find source_url
+      const href = $a.attr("href") ?? url;
+      const source_url = href.startsWith("http") ? href : new URL(href, url).toString();
 
-        // identify date line
-        const dateLine = lines.find(l => l.includes("•") && /\d{4}/.test(l)) ?? "";
-        const start_time = parseDateTimeToronto(dateLine);
-        if (!start_time) continue; // skip if no date found
+      // identify date line
+      const dateLines = lines.filter(l => l.includes("•") && /\d{4}/.test(l));
+      const start_time = parseDateTimeToronto(dateLines[0] ?? "");
+      if (!start_time) continue; // skip if no date found
 
-        // cost - pick lowest price found (or null)
-        const lowest = parseLowestPrice(lines);
-        const cost = lowest == null ? undefined : lowest;
+      // cost - pick lowest price found (or null)
+      const lowest = parseLowestPrice(lines);
+      const cost = lowest == null ? undefined : lowest;
 
-        // "with ..." line
-        const withLines = lines.filter(l => l.toLowerCase().startsWith("with "));
+      // "with ..." line
+      const withLines = lines.filter(l => l.toLowerCase().startsWith("with "));
 
-        // description
-        const isBoilerplate = (s: string) => {
-            const u = s.toUpperCase();
-            return (
-                u === "GET TICKETS" ||
-                u === "SOLD OUT"
-            );
-        };
-        const descriptionLines = lines.filter(l => 
-            !isBoilerplate(l) && !withLines.includes(l)
+      // description
+      const isBoilerplate = (s: string) => {
+        const u = s.toUpperCase();
+        return (
+          u === "GET TICKETS" ||
+          u === "SOLD OUT"
         );
-        const description = descriptionLines.join("\n");
+      };
+      const descriptionLines = lines.filter(l =>
+        !isBoilerplate(l) &&
+        !withLines.includes(l) &&
+        !dateLines.includes(l)
+      );
+      const description = descriptionLines.join("\n").trim();
 
-        // artist - title + "with ..." if present
-        const artist = withLines.length ? `${title} ${withLines.join(" ")}` : title;
+      // artist - title + "with ..." if present
+      const artist = withLines.length ? `${title} ${withLines.join(" ")}` : title;
 
-        // image - use a default image for now
-        const image = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/bridgeworks.jpg";
-        
-        results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: artist, image: image, cost: cost });
+      // detect genres
+      const genres = await detectGenresAsync(artist || null, title, description);
+
+      // image - use a default image for now
+      const image = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/bridgeworks.jpg";
+
+      results.push({
+        title: title,
+        description: description,
+        start_time: start_time,
+        source_url: source_url,
+        artist: artist || null,
+        image: image,
+        cost: cost ?? null,
+        genres: genres
+      });
     }
 
     return results;
@@ -169,9 +171,9 @@ export async function scrapeWebsite(url: string) {
 }
 
 export async function scrapeBridgeworks() {
-    const data = await scrapeWebsite("https://bridgeworks.ca/");
-    return data;
+  const data = await scrapeWebsite("https://bridgeworks.ca/");
+  return data;
 }
 
-// const data = await scrapeBridgeworks();
-// console.log(data);
+//const data = await scrapeBridgeworks();
+//console.log(data);

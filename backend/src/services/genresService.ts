@@ -14,6 +14,11 @@ export const genresService = {
     create: async (name: string) => {
         const { data, error } = await db.genres.create(name);
         if (error) throw error;
-        return data ?? [];
+        return data;
+    },
+    getOrCreateByName: async (name: string) => {
+        const existing = await genresService.getByName(name);
+        if (existing) return existing;
+        return await genresService.create(name);
     },
 };
