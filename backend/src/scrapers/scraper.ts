@@ -185,14 +185,23 @@ const scrapers = [
 ];
 
 for (const { id: venueID, name: venueName, func: scraperFunc } of scrapers) {
+  console.log(`\n======================================================`);
   console.log(`Scraping venue ${venueName} (${venueID})...`);
   const data = await scraperFunc();
 
   if (data?.length) {
-    console.log(`Found ${data.length} events at ${venueName}: ${JSON.stringify(data, null, 2)}`);
+
+    console.log(`\n=== Found ${data.length} events at ${venueName} ===`);
+    data.forEach((e: Event, i: number) => {
+      const g = e.genres?.length ? ` | ${e.genres.join(", ")}` : "";
+      const c = e.cost != null ? ` | $${e.cost.toFixed(2)}` : "";
+      const d = e.description ? `\n    ↳ ` + e.description.replace(/\s+/g," ").substring(0, 75).trim() + "..." : "";
+      console.log(`[${i + 1}] ${new Date(e.start_time).toDateString()} - ${e.title}${g}${c}${d}`);
+    });
+    console.log("");
+
     try {
-      // keep this line commented out.
-      //await insertScrapedEvents(data, venueID);
+      await insertScrapedEvents(data, venueID);
     } catch (err) {
       console.error("Failed to insert events:", err);
     }
