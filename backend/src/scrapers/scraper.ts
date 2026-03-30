@@ -118,7 +118,7 @@ export async function insertScrapedEvents(events: Event[], venueID: string) {
         })
         .filter(Boolean)
         .sort();
-      const incomingGenreNames = (event.genres || []).sort();
+      const incomingGenreNames = (event.genres ? [...event.genres] : []).sort();
       const genresChanged = JSON.stringify(existingGenreNames) !== JSON.stringify(incomingGenreNames);
 
       const changed =
