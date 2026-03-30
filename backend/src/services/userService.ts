@@ -51,23 +51,43 @@ export const userService = {
         return data;
     },
     addFavoriteGenre: async (userId: string, genreId: string) => {
-        const { data, error } = await db.users.addFavoriteGenre(userId, genreId);
+        const { data, error } = await db.users.addFavoriteGenre(
+            userId,
+            genreId,
+        );
         if (error) throw error;
         return data;
     },
     removeFavoriteGenre: async (userId: string, genreId: string) => {
-        const { data, error } = await db.users.removeFavoriteGenre(userId, genreId);
+        const { data, error } = await db.users.removeFavoriteGenre(
+            userId,
+            genreId,
+        );
         if (error) throw error;
         return data;
     },
     addFavoriteVenue: async (userId: string, venueId: string) => {
-        const { data, error } = await db.users.addFavoriteVenue(userId, venueId);
+        const { data, error } = await db.users.addFavoriteVenue(
+            userId,
+            venueId,
+        );
         if (error) throw error;
         return data;
     },
     removeFavoriteVenue: async (userId: string, venueId: string) => {
-        const { data, error } = await db.users.removeFavoriteVenue(userId, venueId);
+        const { data, error } = await db.users.removeFavoriteVenue(
+            userId,
+            venueId,
+        );
         if (error) throw error;
         return data;
-    }
+    },
+    getPersonalizedEventSuggestions: async (userId: string, limit: number) => {
+        const { data, error } = await db.users.getPersonalizedEventSuggestions(
+            userId,
+            limit,
+        );
+        if (error) throw error;
+        return data;
+    },
 };

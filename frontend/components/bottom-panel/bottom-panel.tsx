@@ -19,7 +19,7 @@ type Props = {
 };
 
 export default function BottomPanel({ range, setRange, dateRange, setDateRange, setSearchFilter, setSearchQuery, maxCostValue }: Props) {
-  const snapPoints = useMemo(() => ['12%', '42%'], []);
+  const snapPoints = useMemo(() => ['15%','55%'], []);
   const [searchActive, setSearchActive] = useState(false);
   const dismissRef = useRef<() => void>(() => {});
 
@@ -37,7 +37,7 @@ export default function BottomPanel({ range, setRange, dateRange, setDateRange, 
       style={{ flex: 1 }}
       >
       
-        <BottomSheetView style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 10 }}>
+        <BottomSheetView style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
 
           {/* Full-sheet invisible overlay to dismiss search (shown only when active) */}
           {searchActive && (

@@ -98,7 +98,9 @@ export const db = {
             }
 
             // filter for published events by default
-            query = query.eq("status", "published").eq("ingestion_status", "success");
+            query = query
+                .eq("status", "published")
+                .eq("ingestion_status", "success");
 
             return query.limit(limit);
         },
@@ -177,6 +179,7 @@ export const db = {
             source_url: string | undefined;
             image: string | undefined;
             artist_id?: string | undefined;
+            submitted_by?: string | undefined;
         }) => supabase.from("events").insert(eventData).select().single(),
 
         // delete event by ID
@@ -332,10 +335,7 @@ export const db = {
 
         // remove all genres from an event
         removeAllGenres: (eventId: string) =>
-            supabase
-                .from("event_genres")
-                .delete()
-                .eq("event_id", eventId),
+            supabase.from("event_genres").delete().eq("event_id", eventId),
     },
     // artists: {
     //     getAll: (limit = 50) =>
@@ -633,6 +633,42 @@ export const db = {
                 .select()
                 .single();
         },
+
+        getPersonalizedEventSuggestions: (userId: string, limit: number) => {
+            return supabase
+                .from("personalized_event_suggestions")
+                .select(
+                    `
+                    *,
+                    venues!venue_id (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude
+                    ),
+                    event_genres (
+                        genre_id,
+                        genres (
+                            id,
+                            name
+                        )
+                    ),
+                    artists!artist_id (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                `,
+                )
+                .eq("user_id", userId)
+                .order("score", {
+                    ascending: false,
+                })
+                .limit(limit);
+        },
     },
     genres: {
         // get all genres
@@ -688,31 +724,103 @@ export const db = {
                 })
                 .select()
                 .single(),
+
+        // delete artist by ID
+        deleteById: (id: string) =>
+            supabase.from("artists").delete().eq("id", id),
     },
     userEventDrafts: {
-        // get all drafts (optionally filtered by user_id)
-        getAll: (userId?: string, limit = 50) => {
-            let query = supabase.from("user_event_drafts").select("*");
+        getAll: (
+            limit: number,
+            min_start_time: string,
+            max_start_time: string,
+            min_cost: number,
+            max_cost: number,
+            userId?: string,
+        ) => {
+            let query = supabase
+                .from("user_event_drafts")
+                .select(
+                    `
+                    *,
+                    users (
+                        id,
+                        name,
+                        username,
+                        profile_picture,
+                        bio
+                    ),
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude,
+                        description,
+                        link
+                    ),
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                `,
+                )
+                .gte("start_time", min_start_time)
+                .lte("start_time", max_start_time);
+
+            // handle NULL costs: only filter by cost if user specified a range
+            const isDefaultCostRange =
+                min_cost === 0 && max_cost === Number.MAX_VALUE;
+            if (!isDefaultCostRange) {
+                // apply cost range filter
+                // billy's note: NULL costs will be excluded when filtering (standard behavior)
+                query = query.or(
+                    `cost.is.null,and(cost.gte.${min_cost},cost.lte.${max_cost}))`,
+                );
+            }
+
             if (userId) {
                 query = query.eq("user_id", userId);
             }
+
             return query.order("created_at", { ascending: false }).limit(limit);
         },
-
-        // get drafts by user ID
-        getByUserId: (userId: string, limit = 50) =>
-            supabase
-                .from("user_event_drafts")
-                .select("*")
-                .eq("user_id", userId)
-                .order("created_at", { ascending: false })
-                .limit(limit),
 
         // get draft by ID
         getById: (draftId: string) =>
             supabase
                 .from("user_event_drafts")
-                .select("*")
+                .select(
+                    `
+                    *,
+                    users (
+                        id,
+                        name,
+                        username,
+                        profile_picture,
+                        bio
+                    ),
+                    venues (
+                        id,
+                        name,
+                        address,
+                        venue_type,
+                        latitude,
+                        longitude,
+                        description,
+                        link
+                    ),
+                    artists (
+                        id,
+                        name,
+                        bio,
+                        image
+                    )
+                `,
+                )
                 .eq("id", draftId)
                 .single(),
 
@@ -774,6 +882,8 @@ export const db = {
         // delete a draft by ID
         deleteById: (draftId: string) =>
             supabase.from("user_event_drafts").delete().eq("id", draftId),
+
+        // publish draft: create event from draft, + venue and artist if they don't already exist, then delete draft
     },
     storage: {
         // upload file to storage bucket

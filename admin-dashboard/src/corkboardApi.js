@@ -92,11 +92,59 @@ export async function archivePastEvents() {
   return data;
 }
 
+
 export async function getUserDrafts(limit = 200) {
-  const res = await fetch(`${API_BASE}/api/events/userDrafts?limit=${limit}`, {
+  const res = await fetch(`${API_BASE}/api/drafts?limit=${limit}`, {
     headers: { Accept: "application/json" },
   });
   const data = await res.json();
   if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
-  return data.events || [];
+  return data.drafts || [];
+}
+
+export async function updateDraft(form, draftId) {
+  const res = await fetch(`${API_BASE}/api/drafts/updateDraft`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...form,
+      id: draftId,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || data?.error) throw new Error(data?.error?.message ?? data?.error ?? res.statusText);
+  return data;
+}
+
+export async function deleteDraft(draftId) {
+  const res = await fetch(`${API_BASE}/api/drafts/${draftId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: draftId,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  return data;
+}
+
+export async function publishDraft(draftId) {
+  const url = `${API_BASE}/api/drafts/publish/${draftId}`;
+  console.log("[publishDraft] POST", url);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  console.log("[publishDraft] response status:", res.status, res.statusText);
+  const data = await res.json();
+  console.log("[publishDraft] response body:", data);
+  if (!res.ok || data?.error) throw new Error(data?.error || res.statusText);
+  return data;
 }

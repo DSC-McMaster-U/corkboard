@@ -1,55 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ImageBackground, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ImageBackground, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { apiFetch, apiFetchAuth } from '@/api/api';
-import { UserData, EventData, EventList } from '@/constants/types';
+import { UserData, EventData } from '@/constants/types';
 
-export function HighlightedEvent() {
-  const [featuredEvent, setFeaturedEvent] = useState<EventData | null>(null);
-  const [loading, setLoading] = useState(true);
+export function HighlightedEvent({ user, events }: { user: UserData | null, events: EventData[] }) {
+  const featuredEvent = useMemo(() => {
+    if (!events || events.length === 0) return null;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const userRes = await apiFetchAuth<{ user: UserData }>('api/users/');
-        const favoriteGenres = userRes.user.genres || [];
-        const favoriteGenreIds = favoriteGenres.map((g: { id: string }) => g.id.toString());
+    const favoriteGenres = user?.genres || [];
+    const favoriteGenreIds = favoriteGenres.map((g: { id: string | number }) => String(g.id));
 
-        const eventsRes = await apiFetch<EventList>(`api/events?limit=100`);
+    const eligibleEvents = favoriteGenreIds.length > 0
+      ? events.filter(event => {
+        return event.event_genres?.some(eg => favoriteGenreIds.includes(String(eg.genre_id)));
+      })
+      : [];
 
-        const eligibleEvents = favoriteGenreIds.length > 0
-          ? (eventsRes.events || []).filter(event => {
-            return event.event_genres?.some(eg => favoriteGenreIds.includes(eg.genre_id.toString()));
-          })
-          : [];
-
-        if (eligibleEvents.length > 0) {
-          const randomEvent = eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)];
-          setFeaturedEvent(randomEvent);
-        } else {
-          // If no events match favorite genres, just pick any random event as fallback
-          if (eventsRes.events && eventsRes.events.length > 0) {
-            setFeaturedEvent(eventsRes.events[Math.floor(Math.random() * eventsRes.events.length)]);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching highlighted event:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return (
-      <View className='mb-20 h-56 w-full items-center justify-center bg-neutral-100 rounded-xl'>
-        <ActivityIndicator color='#E2912E' />
-      </View>
-    );
-  }
+    if (eligibleEvents.length > 0) {
+      return eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)];
+    } else {
+      // If no events match favorite genres, just pick any random event as fallback
+      return events[Math.floor(Math.random() * events.length)];
+    }
+  }, [user, events]);
 
   // Fallback if no specific featured event found
   const displayTitle = featuredEvent?.title || 'Discover New Music';
@@ -80,6 +53,8 @@ export function HighlightedEvent() {
       });
     }
   };
+
+  if (!featuredEvent) return null;
 
   return (
     <View className='mb-20'>

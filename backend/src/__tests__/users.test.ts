@@ -1,9 +1,19 @@
-import { describe, it, expect, afterAll, beforeAll } from "@jest/globals";
+import {
+    describe,
+    it,
+    expect,
+    afterAll,
+    beforeAll,
+    afterEach,
+} from "@jest/globals";
 import { db } from "../db/supabaseClient.js";
 import request from "supertest";
 import app from "../app.js";
 import { strictMatchFields } from "../utils/cmp.js";
 import { cleanUpUser } from "../utils/cleanup.js";
+import { Generator } from "../utils/generator.js";
+
+const generator = new Generator();
 
 const existing_user = {
     email: "user-test-" + Math.random().toString(16) + "@corkboard.com",
@@ -385,6 +395,595 @@ describe("POST /api/users", () => {
     });
 });
 
+describe("GET /api/users/suggested-events", () => {
+    const path = "/api/users/suggested-events";
+
+    let jwt: string | undefined = undefined;
+
+    const genres = [
+        "5a985306-82ff-4357-8bf5-3fb272ab73fc",
+        "0049ad43-60b4-4507-bf3c-87980a3d9702",
+        "867e8b7b-9f23-4cb4-b9f5-731a4ba6e92e",
+    ];
+
+    const venues = [
+        "f35b17ff-ab6a-4e42-9a6c-2688e341e945",
+        "204cc1c3-e141-4ba1-9e3f-bde3763149d2",
+        "22411a86-1b39-442c-8af8-991197838b20",
+    ];
+
+    const artists = [
+        "0209522f-69d5-4e9f-8026-f485f063cda5",
+        "07523dbf-f497-4485-a016-e004eaf978f0",
+        "2f427963-7a3b-4d10-a633-ec0de5ed2275",
+    ];
+
+    const scoreEvent = (event: any): number => {
+        let score = 0;
+
+        if (venues.includes(event.venue_id)) {
+            score += 3;
+        }
+
+        if (artists.includes(event.artist_id)) {
+            score += 5;
+        }
+
+        event.event_genres.forEach((eventGenre: any) => {
+            if (genres.includes(eventGenre.genre_id)) {
+                score += 1;
+            }
+        });
+
+        return score;
+    };
+
+    beforeAll(async () => {
+        // This user is not created by this function, so it does not need cleanup
+        jwt = (
+            await db.auth.signIn(existing_user.email, existing_user.password)
+        ).data.session?.access_token;
+        expect(jwt).toBeDefined();
+
+        genres.forEach(async (genre) => {
+            await db.users.addFavoriteGenre(existing_user.id, genre);
+        });
+
+        venues.forEach(async (venue) => {
+            await db.users.addFavoriteVenue(existing_user.id, venue);
+        });
+
+        artists.forEach(async (artist) => {
+            await db.users.addFavoriteArtist(existing_user.id, artist);
+        });
+    });
+
+    it("should return 401 if no authorization token is provided", async () => {
+        const response = await request(app).get(path);
+
+        expect(response.statusCode).toBe(401);
+        expect(response.body.error).toBeDefined();
+    });
+
+    it("should return 200 with events array for an authenticated user", async () => {
+        const response = await request(app)
+            .get(path)
+            .set("Authorization", `Bearer ${jwt}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+
+        let events = response.body.events;
+
+        expect(Array.isArray(events)).toBe(true);
+        expect(events.length).toBe(10);
+
+        // If this test is failing, it might be a false negative
+        // Currently this is here to ensure that the events being returned are actually relevant
+        expect(events[0].score).toBeGreaterThan(0);
+
+        // Verify sort and scores
+        for (let i = 0; i < events.length; i++) {
+            //console.log(events[i]);
+
+            if (i > 0) {
+                expect(events[i].score).toBeLessThanOrEqual(
+                    events[i - 1].score,
+                );
+            }
+
+            expect(events[i].score).toBe(scoreEvent(events[i]));
+        }
+    });
+
+    it("should return limit the events returned", async () => {
+        const limit = 5;
+
+        const response = await request(app)
+            .get(path + `?limit=${limit}`)
+            .set("Authorization", `Bearer ${jwt}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.events.length).toBe(limit);
+    });
+
+    afterAll(() => {
+        genres.forEach(async (genre) => {
+            await db.users.removeFavoriteGenre(existing_user.id, genre);
+        });
+
+        venues.forEach(async (venue) => {
+            await db.users.removeFavoriteVenue(existing_user.id, venue);
+        });
+
+        artists.forEach(async (artist) => {
+            await db.users.removeFavoriteArtist(existing_user.id, artist);
+        });
+    });
+});
+
+describe("PUT /api/users/:userId", () => {
+    const path = "/api/users";
+
+    let jwt: string;
+
+    beforeAll(async () => {
+        const signIn = await db.auth.signIn(
+            existing_user.email,
+            existing_user.password,
+        );
+        jwt = signIn.data.session?.access_token!;
+        expect(jwt).toBeDefined();
+    });
+
+    it("should return 401 if no authorization token is provided", async () => {
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .send({ bio: "no auth" });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.body.error).toBeDefined();
+    });
+
+    it("should return 403 if userId does not match authenticated user", async () => {
+        const otherUserId = "00000000-0000-0000-0000-000000000000";
+
+        const response = await request(app)
+            .put(`${path}/${otherUserId}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send({ bio: "should not work" });
+
+        expect(response.statusCode).toBe(403);
+        expect(response.body.error).toBe(
+            "Forbidden: You can only update your own account.",
+        );
+    });
+
+    it("should return 200 and update bio", async () => {
+        const updatedBio = `test bio ${Date.now()}`;
+
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send({ bio: updatedBio });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it("should return 200 and update username", async () => {
+        const updatedUsername = `user_${Date.now()}`;
+
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send({ username: updatedUsername });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it("should return 200 and update name", async () => {
+        const updatedName = `Test Name ${Date.now()}`;
+
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send({ name: updatedName });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it("should return 200 and update multiple fields at once", async () => {
+        const updates = {
+            name: `Multi ${Date.now()}`,
+            username: `multi_${Date.now()}`,
+            bio: "multi update bio",
+        };
+
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send(updates);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it("should return 200 when sending an empty body", async () => {
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send({});
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+    });
+
+    it("should update the users information", async () => {
+        const user_updates = {
+            name: "update-test-name",
+            bio: "update-test-bio",
+            username: "update-test-username",
+            profile_picture: "update-test-pic",
+        };
+
+        const response = await request(app)
+            .put(`${path}/${existing_user.id}`)
+            .set("Authorization", `Bearer ${jwt}`)
+            .send(user_updates);
+
+        let userInDb = await db.users.getById(existing_user.id);
+
+        expect(
+            strictMatchFields(userInDb.data, user_updates, [
+                "name",
+                "bio",
+                "username",
+                "profile_picture",
+            ]),
+        );
+    });
+});
+
+describe("POST /api/users/addGenre", () => {
+    const path = "/api/users/addGenre";
+
+    let jwt: string;
+    let testGenreId: string;
+
+    beforeAll(async () => {
+        const signIn = await db.auth.signIn(
+            existing_user.email,
+            existing_user.password,
+        );
+        jwt = signIn.data.session?.access_token!;
+        expect(jwt).toBeDefined();
+
+        testGenreId = await generator.generateGenre();
+    });
+
+    afterEach(async () => {
+        // clean up after each test
+        await db.users.removeFavoriteGenre(existing_user.id, testGenreId);
+    });
+
+    describe("input handling", () => {
+        it("should return 401 if no authorization token is provided", async () => {
+            const response = await request(app)
+                .post(path)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(401);
+            expect(response.body.error).toBeDefined();
+        });
+
+        it("should return 400 if no genreId is provided", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({});
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing genre ID");
+        });
+
+        it("should return 400 if genreId is empty string", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: "" });
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing genre ID");
+        });
+
+        it("should return 200 with valid auth and genreId", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(200);
+            expect(response.body.success).toBe(true);
+        });
+    });
+
+    describe("database propagation", () => {
+        it("should persist the favorite genre in the database", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(200);
+
+            const { data: user } = await db.users.getByIdWithFavorites(
+                existing_user.id,
+            );
+
+            expect(user).toBeDefined();
+            const genreIds = user!.genres.map((g: any) => g.id);
+            expect(genreIds).toContain(testGenreId);
+        });
+    });
+});
+
+describe("DELETE /api/users/removeGenre", () => {
+    const path = "/api/users/removeGenre";
+
+    let jwt: string;
+    let testGenreId: string;
+
+    beforeAll(async () => {
+        const signIn = await db.auth.signIn(
+            existing_user.email,
+            existing_user.password,
+        );
+        jwt = signIn.data.session?.access_token!;
+        expect(jwt).toBeDefined();
+
+        testGenreId = await generator.generateGenre();
+    });
+
+    afterEach(async () => {
+        // ensure genre is removed so state is clean
+        await db.users.removeFavoriteGenre(existing_user.id, testGenreId);
+    });
+
+    describe("input handling", () => {
+        it("should return 401 if no authorization token is provided", async () => {
+            const response = await request(app)
+                .delete(path)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(401);
+            expect(response.body.error).toBeDefined();
+        });
+
+        it("should return 400 if no genreId is provided", async () => {
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({});
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing genre ID");
+        });
+
+        it("should return 400 if genreId is empty string", async () => {
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: "" });
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing genre ID");
+        });
+
+        it("should return 200 with valid auth and genreId", async () => {
+            // add genre first so there is something to remove
+            await db.users.addFavoriteGenre(existing_user.id, testGenreId);
+
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(200);
+            expect(response.body.success).toBe(true);
+        });
+    });
+
+    describe("database propagation", () => {
+        it("should remove the favorite genre from the database", async () => {
+            // add genre first
+            await db.users.addFavoriteGenre(existing_user.id, testGenreId);
+
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ genreId: testGenreId });
+
+            expect(response.statusCode).toBe(200);
+
+            const { data: user } = await db.users.getByIdWithFavorites(
+                existing_user.id,
+            );
+
+            expect(user).toBeDefined();
+            const genreIds = user!.genres.map((g: any) => g.id);
+            expect(genreIds).not.toContain(testGenreId);
+        });
+    });
+});
+
+describe("POST /api/users/addVenue", () => {
+    const path = "/api/users/addVenue";
+
+    let jwt: string;
+    let testVenueId: string;
+
+    beforeAll(async () => {
+        const signIn = await db.auth.signIn(
+            existing_user.email,
+            existing_user.password,
+        );
+        jwt = signIn.data.session?.access_token!;
+        expect(jwt).toBeDefined();
+
+        testVenueId = await generator.generateVenue();
+    });
+
+    afterEach(async () => {
+        await db.users.removeFavoriteVenue(existing_user.id, testVenueId);
+    });
+
+    describe("input handling", () => {
+        it("should return 401 if no authorization token is provided", async () => {
+            const response = await request(app)
+                .post(path)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(401);
+            expect(response.body.error).toBeDefined();
+        });
+
+        it("should return 400 if no venueId is provided", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({});
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing venue ID");
+        });
+
+        it("should return 400 if venueId is empty string", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: "" });
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing venue ID");
+        });
+
+        it("should return 200 with valid auth and venueId", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(200);
+            expect(response.body.success).toBe(true);
+        });
+    });
+
+    describe("database propagation", () => {
+        it("should persist the favorite venue in the database", async () => {
+            const response = await request(app)
+                .post(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(200);
+
+            const { data: user } = await db.users.getByIdWithFavorites(
+                existing_user.id,
+            );
+
+            expect(user).toBeDefined();
+            const venueIds = user!.venues.map((v: any) => v.id);
+            expect(venueIds).toContain(testVenueId);
+        });
+    });
+});
+
+describe("DELETE /api/users/removeVenue", () => {
+    const path = "/api/users/removeVenue";
+
+    let jwt: string;
+    let testVenueId: string;
+
+    beforeAll(async () => {
+        const signIn = await db.auth.signIn(
+            existing_user.email,
+            existing_user.password,
+        );
+        jwt = signIn.data.session?.access_token!;
+        expect(jwt).toBeDefined();
+
+        testVenueId = await generator.generateVenue();
+    });
+
+    describe("input handling", () => {
+        it("should return 401 if no authorization token is provided", async () => {
+            const response = await request(app)
+                .delete(path)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(401);
+            expect(response.body.error).toBeDefined();
+        });
+
+        it("should return 400 if no venueId is provided", async () => {
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({});
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing venue ID");
+        });
+
+        it("should return 400 if venueId is empty string", async () => {
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: "" });
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("Missing venue ID");
+        });
+
+        it("should return 200 with valid auth and venueId", async () => {
+            await db.users.addFavoriteVenue(existing_user.id, testVenueId);
+
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(200);
+            expect(response.body.success).toBe(true);
+        });
+    });
+
+    describe("database propagation", () => {
+        it("should remove the favorite venue from the database", async () => {
+            await db.users.addFavoriteVenue(existing_user.id, testVenueId);
+
+            const response = await request(app)
+                .delete(path)
+                .set("Authorization", `Bearer ${jwt}`)
+                .send({ venueId: testVenueId });
+
+            expect(response.statusCode).toBe(200);
+
+            const { data: user } = await db.users.getByIdWithFavorites(
+                existing_user.id,
+            );
+
+            expect(user).toBeDefined();
+            const venueIds = user!.venues.map((v: any) => v.id);
+            expect(venueIds).not.toContain(testVenueId);
+        });
+    });
+});
+
 afterAll(async () => {
     await cleanUpUser(existing_user.id);
 
@@ -395,4 +994,6 @@ afterAll(async () => {
 
         await cleanUpUser(id);
     }
+
+    generator.cleanUp();
 });

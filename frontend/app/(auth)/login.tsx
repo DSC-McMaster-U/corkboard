@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar, Image} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { apiFetch } from "@/api/api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPasswordBasic = (password: string) => password.length >= 8; 
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,10 +15,22 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [error, setError] = useState<string | null>(null);
+
+  const emailMsg =
+    !email ? "Enter the email you registered with." : isValidEmail(email) ? null : "That email format looks wrong.";
+
+  const passwordMsg =
+    !password ? "Enter your password." : isValidPasswordBasic(password) ? null : "Password looks too short.";
+
+  const canSubmit = isValidEmail(email) && isValidPasswordBasic(password);
 
   const onLogin = async () => {
+    setError(null);
+
     if (!email.trim() || !password) {
-      Alert.alert("Missing info", "Please enter your email and password.");
+      setError("Please enter your email and password.");
       return;
     }
 
@@ -30,20 +45,19 @@ export default function LoginScreen() {
       );
 
       if (!data || data?.success === false || data?.error) {
-        const msg = data?.error || 'Login failed.';
-        Alert.alert('Login failed', msg);
-        return;
+      setError(data?.error || "Login failed.");
+      return;
       }
 
       if (!data?.jwt) {
-        Alert.alert('Login failed', 'No token returned from server.');
+        setError("Login failed: no token returned from server.");
         return;
       }
 
       await AsyncStorage.setItem('authToken', data.jwt);
       router.replace('/');
     } catch (e) {
-      Alert.alert('Network error', 'Could not reach the server. Try again.');
+      setError("Could not reach the server. Try again.");
     } finally {
       setLoading(false);
     }
@@ -60,41 +74,58 @@ export default function LoginScreen() {
       );
 
       if (!data || data?.success === false || data?.error) {
-        const msg = data?.error || 'Login failed.';
-        Alert.alert('Login failed', msg);
+        setError(data?.error || "Login failed.");
         return;
       }
 
       if (!data?.jwt) {
-        Alert.alert('Login failed', 'No token returned from server.');
+        setError("Login failed: no token returned from server.");
         return;
       }
 
       await AsyncStorage.setItem('authToken', data.jwt);
       router.replace('/');
     } catch (e) {
-      Alert.alert('Network error', 'Could not reach the server. Try again.');
+      setError("Could not reach the server. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000000"
+        translucent={false}
+      />
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.outer}>
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/corkboard-logo-transparent.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.brandTitle}>Corkboard</Text>
+          <Text style={styles.brandSubtitle}>Discover live music near you</Text>
+        </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Login</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Login</Text>
 
             <View style={styles.inputWrap}>
               <Ionicons name="mail-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setTouched((t) => ({ ...t, email: true }));
+                }}
+                placeholder="Email Address"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
                 autoCapitalize="none"
@@ -102,12 +133,16 @@ export default function LoginScreen() {
                 autoComplete="email"
               />
             </View>
+            {touched.email && emailMsg && <Text style={styles.helperText}>{emailMsg}</Text>}
 
             <View style={styles.inputWrap}>
               <Ionicons name="key-outline" size={18} color={COLORS.muted} />
               <TextInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setTouched((t) => ({ ...t, password: true }));
+                }}
                 placeholder="Password"
                 placeholderTextColor={COLORS.placeholder}
                 style={styles.input}
@@ -125,12 +160,15 @@ export default function LoginScreen() {
                 />
               </Pressable>
             </View>
+            {touched.password && passwordMsg && <Text style={styles.helperText}>{passwordMsg}</Text>}
+
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Pressable
-            style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
-            onPress={onLogin}
-            disabled={loading}
-          >
+              style={[styles.primaryBtn, (!canSubmit || loading) && styles.primaryBtnDisabled]}
+              onPress={onLogin}
+              disabled={!canSubmit || loading}
+            >
             {loading ? (
               <ActivityIndicator />
             ) : (
@@ -156,6 +194,7 @@ export default function LoginScreen() {
           </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -176,36 +215,56 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.frameBg,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
   },
   outer: {
     width: "100%",
     maxWidth: 380,
+    alignItems: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  logo: {
+    width: 110,
+    height: 110,
+    marginBottom: 8,
+  },
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#411900",
+    marginBottom: 4,
+  },
+  brandSubtitle: {
+    fontSize: 16,
+    color: "#4b0000",
+    textAlign: "center",
   },
   card: {
     backgroundColor: COLORS.cardBg,
-    borderRadius: 18,
-    padding: 22,
+    borderRadius: 24,
+    padding: 24,
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 7,
-    alignSelf: "center",
-    width: "92%",
+    width: "100%",
   },
   cardTitle: {
     color: COLORS.textOnDark,
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: 10,
   },
   inputWrap: {
     backgroundColor: COLORS.inputBg,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -221,8 +280,8 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: COLORS.button,
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: "center",
     marginTop: 20,
   },
@@ -237,12 +296,29 @@ const styles = StyleSheet.create({
   footerText: {
     color: "#f1dfd6",
     textAlign: "center",
-    marginTop: 14,
+    marginTop: 16,
     fontSize: 13,
   },
   footerLink: {
     color: "#ffffff",
     textDecorationLine: "underline",
     fontWeight: "700",
+  },
+  helperText: {
+    color: "#f1dfd6",
+    marginTop: 6,
+    marginLeft: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.95,
+  },
+  errorText: {
+    color: "#ffd6d6",
+    backgroundColor: "#7a1f1f",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    textAlign: "center",
+    fontSize: 13,
   },
 });

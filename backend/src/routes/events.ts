@@ -143,6 +143,64 @@ router.get("/:id", async (req: Request, res: Response) => {
         });
 });
 
+// PATCH /api/events/:id - Edit a user-submitted event (owner only)
+router.patch("/:id", authService.validateToken, async (req: Request, res: Response) => {
+    const user = authService.getUser(res);
+
+    if (user == undefined) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+
+    const { id } = req.params;
+
+    if (!id) {
+        res.status(400).json({ error: "Event ID is missing" });
+        return;
+    }
+
+    // Verify event exists and belongs to this user
+    let event;
+    try {
+        event = await eventService.getEventByID(id);
+    } catch {
+        res.status(404).json({ error: "Event not found" });
+        return;
+    }
+
+    if (event.submitted_by !== user.id) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+    }
+
+    const body = req.body ?? {};
+
+    if (body.start_time !== undefined) {
+        const parsed_date = parseDateOr(body.start_time, new Date("1970-01-01"));
+        if (parsed_date.getTime() <= new Date().getTime()) {
+            res.status(400).json({ error: "Invalid start time" });
+            return;
+        }
+    }
+
+    // Only include user-editable fields — status, source_type, ingestion_status, archived are admin-only
+    const patch: Parameters<typeof eventService.updateEventByID>[1] = {};
+    const stringFields = ["title", "description", "start_time", "source_url", "image", "venue_id", "artist_id"] as const;
+    for (const field of stringFields) {
+        if (body[field] !== undefined) patch[field] = body[field];
+    }
+    if (body.cost !== undefined) patch.cost = parseFloatOr(body.cost, 0);
+    if (body.genreIds !== undefined) patch.genreIds = body.genreIds;
+
+    eventService.updateEventByID(id, patch)
+        .then((result) => {
+            res.status(200).json({ id: result?.id, success: true });
+        })
+        .catch((err) => {
+            res.status(500).json({ success: false, error: err?.message ?? String(err) });
+        });
+});
+
 router.post("/updateEvent", async (req: Request, res: Response) => {
     req.body = req.body ?? {};
 
@@ -244,105 +302,6 @@ router.post("/archivePastEvents", async (req: Request, res: Response) => {
     eventService.archivePastEvents()
         .then(() => {
             res.status(200).json({ success: true });
-        })
-        .catch((err) => {
-            res.status(500).json({ success: false, error: err });
-        });
-});
-
-
-router.get("/userDrafts", async (req: Request, res: Response) => {
-    const limit = parseIntOr(req.query.limit as string | undefined, 20);
-
-    const min_start_time = parseDateOr(
-        req.query.min_start_time as string | undefined,
-        new Date("1970-1-1")
-    );
-
-    const max_start_time = parseDateOr(
-        req.query.max_start_time as string | undefined,
-        new Date("2999-1-1")
-    );
-
-    const min_cost = parseFloatOr(req.query.min_cost as string | undefined, 0);
-
-    const max_cost = parseFloatOr(
-        req.query.max_cost as string | undefined,
-        Number.MAX_VALUE
-    );
-
-    eventService
-        .getUserUploadedEvents(
-            limit,
-            min_start_time.toISOString(),
-            max_start_time.toISOString(),
-            min_cost,
-            max_cost,
-        )
-        .then((events) => {
-            res.status(200).json({ events: events, count: events.length });
-        })
-        .catch((err: Error) => {
-            console.log("Error getting events: ", err);
-            res.status(500).json({ error: err });
-        });
-});
-
-router.post("/uploadDraft", async (req: Request, res: Response) => {
-    req.body = req.body ?? {};
-
-    const {
-        user_id = undefined,
-        title = undefined,
-        venue_id = undefined,
-        start_time = undefined,
-        description = undefined,
-        cost = undefined,
-        image = undefined,
-        artist_id = undefined,
-    } = req.body;
-
-    if (user_id == undefined || user_id === "") {
-        res.status(400).json({ error: "User ID is missing" });
-        return;
-    }
-
-    if (title == undefined || title === "") {
-        res.status(400).json({ error: "Title is missing" });
-        return;
-    }
-
-    if (venue_id == undefined || venue_id === "") {
-        res.status(400).json({ error: "Venue ID is missing" });
-        return;
-    }
-
-    if (start_time == undefined || start_time === "") {
-        res.status(400).json({ error: "Start time is missing" });
-        return;
-    }
-
-    let parsed_date = parseDateOr(start_time, new Date("1970-01-01"));
-
-    // Current or previous dates are invalid
-    if (parsed_date.getTime() <= new Date().getTime()) {
-        res.status(400).json({ error: "Invalid start time" });
-        return;
-    }
-
-    eventService
-        .uploadUserEvent(
-            user_id,
-            title,
-            venue_id,
-            parsed_date.toISOString(),
-            description,
-            cost,
-            image,
-            artist_id
-        )
-        .then((result) => {
-            res.status(200).json({ id: result.id, success: true });
         })
         .catch((err) => {
             res.status(500).json({ success: false, error: err });

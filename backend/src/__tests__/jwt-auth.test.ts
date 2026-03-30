@@ -1,51 +1,22 @@
 import request from "supertest";
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
-import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import app from "../app.js";
 import { db } from "../db/supabaseClient.js";
-import { cleanUpUser } from "../utils/cleanup.js";
+import { generatePassword, Generator } from "../utils/generator.js";
+import { userService } from "../services/userService.js";
 
 // Load environment variables
 dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
-
-const RUN_ID = Date.now() % 100000;
-const TEST_USER_EMAIL = "jwt-auth-test-" + RUN_ID + "@example.com";
-const TEST_USER_PASSWORD =
-    Math.random().toString(36) + Math.random().toString(36);
-
-const TEST_EVENT_ID = "2430b29f-0bd3-4d49-9b70-9c8a0b26bf8e"; // "Test Event"
-
-beforeAll(async () => {
-    await db.auth.signUp(TEST_USER_EMAIL, TEST_USER_PASSWORD);
-});
+const generator = new Generator();
 
 describe("JWT Authentication", () => {
     let jwtToken: string;
-    let supabase: ReturnType<typeof createClient>;
+    let test_event_id: string;
 
     beforeAll(async () => {
-        // note: test setup creates its own Supabase client for getting JWT tokens
-        // this is acceptable for test setup - application code uses db layer
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-        // sign in to get JWT token
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: TEST_USER_EMAIL,
-            password: TEST_USER_PASSWORD,
-        });
-
-        if (error || !data?.session) {
-            throw new Error(
-                `Failed to get JWT token: ${error?.message || "No session"}`,
-            );
-        }
-
-        jwtToken = data.session.access_token;
-        console.log("JWT token obtained for testing");
+        jwtToken = (await generator.generateUser({ withSession: true })).jwt!;
+        test_event_id = await generator.generateEvent();
     });
 
     // 1. test valid JWT token
@@ -123,7 +94,9 @@ describe("JWT Authentication", () => {
         const response = await request(app)
             .post("/api/bookmarks")
             .set("Authorization", `Bearer ${jwtToken}`)
-            .send({ eventId: TEST_EVENT_ID });
+            .send({ eventId: test_event_id });
+
+        console.log(response.body);
 
         // should return 200 (bookmark created) or 418 (already exists)
         expect([200, 418]).toContain(response.statusCode);
@@ -133,7 +106,7 @@ describe("JWT Authentication", () => {
             const deleteResponse = await request(app)
                 .delete("/api/bookmarks")
                 .set("Authorization", `Bearer ${jwtToken}`)
-                .send({ eventId: TEST_EVENT_ID });
+                .send({ eventId: test_event_id });
 
             expect(deleteResponse.statusCode).toBe(200);
         }
@@ -153,7 +126,7 @@ describe("JWT Authentication", () => {
     it("should return 401 with missing token on POST bookmarks", async () => {
         const response = await request(app)
             .post("/api/bookmarks")
-            .send({ eventId: TEST_EVENT_ID });
+            .send({ eventId: test_event_id });
 
         expect(response.statusCode).toBe(401);
         expect(response.body.error).toBe("Unauthorized");
@@ -175,14 +148,26 @@ describe("JWT Authentication", () => {
 
 // URGENT: tests temporarily skipped to prevent creating users with invalid emails
 // TODO: re-enable after email validation is implemented
-describe.skip("Sign-In Business Logic", () => {
+describe("Sign-In Business Logic", () => {
     // test sign-in using db layer methods
+    let testUserId: string;
+    let testUserEmail: string;
+    let testUserPassword: string = generatePassword();
+
+    beforeAll(async () => {
+        testUserId = (
+            await generator.generateUser({
+                password: testUserPassword,
+            })
+        ).id;
+        testUserEmail = (await userService.getUserById(testUserId)).email;
+    });
 
     // 1. test sign-in with valid credentials
     it("should successfully sign in with valid credentials using db.auth.signIn", async () => {
         const { data, error } = await db.auth.signIn(
-            TEST_USER_EMAIL,
-            TEST_USER_PASSWORD,
+            testUserEmail,
+            testUserPassword,
         );
 
         expect(error).toBeNull();
@@ -190,14 +175,14 @@ describe.skip("Sign-In Business Logic", () => {
         expect(data?.user).toBeDefined();
         expect(data?.session).toBeDefined();
         expect(data?.session?.access_token).toBeDefined();
-        expect(data?.user?.email).toBe(TEST_USER_EMAIL);
+        expect(data?.user?.email).toBe(testUserEmail);
     });
 
     // 2. test sign-in with invalid email
     it("should return error with invalid email", async () => {
         const { data, error } = await db.auth.signIn(
             "hello@example.com",
-            TEST_USER_PASSWORD,
+            testUserPassword,
         );
 
         expect(error).toBeDefined();
@@ -207,7 +192,7 @@ describe.skip("Sign-In Business Logic", () => {
 
     // 3. test sign-in with wrong password
     it("should return error with wrong password", async () => {
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "this");
+        const { data, error } = await db.auth.signIn(testUserEmail, "this");
 
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
@@ -216,7 +201,7 @@ describe.skip("Sign-In Business Logic", () => {
 
     // 4. test sign-in with empty email
     it("should return error with empty email", async () => {
-        const { data, error } = await db.auth.signIn("", TEST_USER_PASSWORD);
+        const { data, error } = await db.auth.signIn("", testUserPassword);
 
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
@@ -224,7 +209,7 @@ describe.skip("Sign-In Business Logic", () => {
 
     // 5. test sign-in with empty password
     it("should return error with empty password", async () => {
-        const { data, error } = await db.auth.signIn(TEST_USER_EMAIL, "");
+        const { data, error } = await db.auth.signIn(testUserEmail, "");
 
         expect(error).toBeDefined();
         expect(data.session).toBeNull();
@@ -233,8 +218,8 @@ describe.skip("Sign-In Business Logic", () => {
     // 6. test sign-in with valid credentials and works with API
     it("should return valid token that works with API after sign-in", async () => {
         const { data, error } = await db.auth.signIn(
-            TEST_USER_EMAIL,
-            TEST_USER_PASSWORD,
+            testUserEmail,
+            testUserPassword,
         );
 
         expect(error).toBeNull();
@@ -254,7 +239,5 @@ describe.skip("Sign-In Business Logic", () => {
 });
 
 afterAll(async () => {
-    console.log("Cleaning user: ", TEST_USER_EMAIL);
-    let test_user_id = (await db.users.getByEmail(TEST_USER_EMAIL)).data.id;
-    cleanUpUser(test_user_id);
+    await generator.cleanUp();
 });

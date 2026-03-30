@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Text, TouchableOpacity, View, ActivityIndicator, Image } from 'react-native';
+import { Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetchAuth } from '@/api/api';
+import { BookmarkSkeleton } from '@/components/ui/skeleton';
 import { useFocusEffect } from 'expo-router';
 import { EventData } from '@/constants/types';
 
@@ -25,9 +27,19 @@ interface BookmarkCardProps {
     hasFailed: boolean;
 }
 
-function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardProps) {
+const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+};
+
+const BookmarkCard = React.memo(function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardProps) {
     const handleOnPress = () => {
-        // Extract genre names from the event_genres array
         const genreNames = event.event_genres?.map((g) => g.genres.name) || [];
 
         router.push({
@@ -56,18 +68,6 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
         onRemove(event.id.toString());
     };
 
-    // Format subtitle
-    const formatDate = (dateString: string): string => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-        });
-    };
-
     const subtitle = `${event.venues?.name || 'Unknown Venue'} • ${formatDate(event.start_time)}`;
 
     return (
@@ -77,9 +77,10 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
                 <View className="w-10 h-10 rounded-lg overflow-hidden bg-accent/30 items-center justify-center mr-3">
                     {event.image ? (
                         <Image
-                            source={{ uri: event.image }}
-                            className="w-full h-full"
-                            resizeMode="cover"
+                            source={event.image}
+                            style={{ width: '100%', height: '100%' }}
+                            contentFit="cover"
+                            transition={200}
                         />
                     ) : (
                         <Text className="text-lg">🎵</Text>
@@ -119,7 +120,7 @@ function BookmarkCard({ event, onRemove, isRemoving, hasFailed }: BookmarkCardPr
             </View>
         </TouchableOpacity>
     );
-}
+});
 
 export function Bookmarks() {
     const [bookmarks, setBookmarks] = useState<EventData[]>([]);
@@ -128,7 +129,7 @@ export function Bookmarks() {
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
     const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
 
-    const removeBookmark = async (eventId: string) => {
+    const removeBookmark = useCallback(async (eventId: string) => {
         // Clear any previous error for this item
         setFailedIds((prev) => {
             const next = new Set(prev);
@@ -165,7 +166,7 @@ export function Bookmarks() {
                 return next;
             });
         }
-    };
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -221,32 +222,31 @@ export function Bookmarks() {
             </View>
 
             {/* Bookmark List */}
-            <View>
-                {loading ? (
-                    <View className="py-8 items-center">
-                        <ActivityIndicator size="small" color="#C4A484" />
-                        <Text className="text-foreground/60 mt-2">Loading bookmarks...</Text>
-                    </View>
-                ) : error ? (
-                    <View className="py-8 items-center">
-                        <Text className="text-red-500">{error}</Text>
-                    </View>
-                ) : bookmarks.length === 0 ? (
-                    <View className="py-8 items-center">
-                        <Text className="text-foreground/60">No bookmarks yet</Text>
-                    </View>
-                ) : (
-                    bookmarks.map((event) => (
+            {loading ? (
+                <BookmarkSkeleton />
+            ) : error ? (
+                <View className="py-8 items-center">
+                    <Text className="text-red-500">{error}</Text>
+                </View>
+            ) : bookmarks.length === 0 ? (
+                <View className="py-8 items-center">
+                    <Text className="text-foreground/60">No bookmarks yet</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={bookmarks}
+                    keyExtractor={(item) => item.id.toString()}
+                    scrollEnabled={false}
+                    renderItem={({ item }) => (
                         <BookmarkCard
-                            key={event.id}
-                            event={event}
+                            event={item}
                             onRemove={removeBookmark}
-                            isRemoving={removingIds.has(event.id.toString())}
-                            hasFailed={failedIds.has(event.id.toString())}
+                            isRemoving={removingIds.has(item.id.toString())}
+                            hasFailed={failedIds.has(item.id.toString())}
                         />
-                    ))
-                )}
-            </View>
+                    )}
+                />
+            )}
         </View>
     );
 }

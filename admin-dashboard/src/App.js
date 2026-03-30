@@ -22,10 +22,13 @@ function eventSearchBlob(e) {
     [
       e.title,
       e.artist,
+      e.artist_name,
       e.description,
       e.source_url,
       e.venues?.name,
+      e.venue_name,
       e.venues?.address,
+      e.venue_address,
     ]
       .filter(Boolean)
       .join(" ")
@@ -46,6 +49,24 @@ export default function App() {
     artist: "",
     genreIds: [],
   });
+  const [draftForm, setDraftForm] = useState({
+    title: "",
+    description: "",
+    start_time: "",
+    cost: "",
+    source_url: "",
+    image: "",
+    venue_id: "",
+    artist_name: "",
+    artist_bio: "",
+    artist_image: "",
+    artist_id: "",
+    venue_name: "",
+    venue_address: "",
+    venue_type: "",
+    venue_latitude: "",
+    venue_longitude: "",
+  })
 
   const [allGenres, setAllGenres] = useState([]);
 
@@ -101,6 +122,29 @@ export default function App() {
     });
   }, [selected, form]);
 
+  const draftDirty = useMemo(() => {
+    if (!selected || !viewDrafts) return false;
+    const baseline = {
+      title: selected.title || "",
+      description: selected.description || "",
+      start_time: toDateTimeLocal(selected.start_time),
+      cost: selected.cost === null || selected.cost === undefined ? "" : String(selected.cost),
+      source_url: selected.source_url || "",
+      image: selected.image || "",
+      venue_id: selected.venue_id || "",
+      artist_name: selected.artist_name || "",
+      artist_bio: selected.artist_bio || "",
+      artist_image: selected.artist_image || "",
+      artist_id: selected.artist_id || "",
+      venue_name: selected.venue_name || "",
+      venue_address: selected.venue_address || "",
+      venue_type: selected.venue_type || "",
+      venue_latitude: selected.venue_latitude === null || selected.venue_latitude === undefined ? "" : String(selected.venue_latitude),
+      venue_longitude: selected.venue_longitude === null || selected.venue_longitude === undefined ? "" : String(selected.venue_longitude),
+    };
+    return Object.keys(baseline).some((k) => baseline[k] !== draftForm[k]);
+  }, [selected, draftForm, viewDrafts]);
+
   async function refresh() {
     setLoading(true);
     setErr(null);
@@ -149,11 +193,29 @@ export default function App() {
       artist: selected.artist || "",
       genreIds: selected.event_genres?.map(eg => eg.genre_id) || [],
     });
+    setDraftForm({
+      title: selected.title || "",
+      description: selected.description || "",
+      start_time: toDateTimeLocal(selected.start_time),
+      cost: selected.cost === null || selected.cost === undefined ? "" : String(selected.cost),
+      source_url: selected.source_url || "",
+      image: selected.image || "",
+      venue_id: selected.venue_id || "",
+      artist_name: selected.artist_name || "",
+      artist_bio: selected.artist_bio || "",
+      artist_image: selected.artist_image || "",
+      artist_id: selected.artist_id || "",
+      venue_name: selected.venue_name || "",
+      venue_address: selected.venue_address || "",
+      venue_type: selected.venue_type || "",
+      venue_latitude: selected.venue_latitude === null || selected.venue_latitude === undefined ? "" : String(selected.venue_latitude),
+      venue_longitude: selected.venue_longitude === null || selected.venue_longitude === undefined ? "" : String(selected.venue_longitude),
+    });
     setErr(null);
     setMsg(null);
   }, [selected]);
 
-  function copyDraftJson() {
+  function copyJSON() {
     const payload = {
       id: selected?.id,
       title: form.title.trim(),
@@ -163,6 +225,31 @@ export default function App() {
       status: form.status.trim() || undefined,
       source_url: form.source_url.trim() || undefined,
       artist: form.artist.trim() || undefined,
+    };
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    setMsg("Copied JSON to clipboard.");
+  }
+
+  function copyDraftJSON() {
+    const payload = {
+      id: selected?.id,
+      user_id: selected?.user_id,
+      title: draftForm.title.trim(),
+      description: draftForm.description.trim() || undefined,
+      start_time: draftForm.start_time ? new Date(draftForm.start_time).toISOString() : undefined,
+      cost: draftForm.cost === "" ? undefined : Number(draftForm.cost),
+      source_url: draftForm.source_url.trim() || undefined,
+      image: draftForm.image.trim() || undefined,
+      venue_id: draftForm.venue_id.trim() || undefined,
+      artist_name: draftForm.artist_name.trim() || undefined,
+      artist_bio: draftForm.artist_bio.trim() || undefined,
+      artist_image: draftForm.artist_image.trim() || undefined,
+      artist_id: draftForm.artist_id.trim() || undefined,
+      venue_name: draftForm.venue_name.trim() || undefined,
+      venue_address: draftForm.venue_address.trim() || undefined,
+      venue_type: draftForm.venue_type.trim() || undefined,
+      venue_latitude: draftForm.venue_latitude === "" ? undefined : Number(draftForm.venue_latitude),
+      venue_longitude: draftForm.venue_longitude === "" ? undefined : Number(draftForm.venue_longitude),
     };
     navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     setMsg("Copied draft JSON to clipboard.");
@@ -258,19 +345,18 @@ export default function App() {
         {viewDrafts ?
           (<DraftEditor
             event={selected}
-            form={form}
-            setForm={setForm}
-            dirty={dirty}
-            onCopyDraft={copyDraftJson}
+            form={draftForm}
+            setForm={setDraftForm}
+            dirty={draftDirty}
+            onCopyDraft={copyDraftJSON}
             refresh={refresh}
-            allGenres={allGenres}
           />) :
           (<EventEditor
             event={selected}
             form={form}
             setForm={setForm}
             dirty={dirty}
-            onCopyDraft={copyDraftJson}
+            onCopyDraft={copyJSON}
             refresh={refresh}
             allGenres={allGenres}
           />)

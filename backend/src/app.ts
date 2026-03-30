@@ -16,6 +16,7 @@ import bookmarkRoutes from "./routes/bookmarks.js";
 import genreRoutes from "./routes/genres.js";
 import imageRoutes from "./routes/images.js";
 import authRoutes from "./routes/auth.js";
+import draftRoutes from "./routes/drafts.js";
 
 // Cursed way to get dir name to work with both TS and babel (jest)
 import __dirname from "./meta.cjs";
@@ -77,6 +78,7 @@ app.use("/api/users/", userRoutes);
 app.use("/api/bookmarks/", bookmarkRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/images", imageRoutes);
+app.use("/api/drafts", draftRoutes);
 
 if (NODE_ENV != "test") {
     app.listen(PORT, () => {
@@ -90,6 +92,7 @@ if (NODE_ENV != "test") {
         console.log(`Bookmarks: http://localhost:${PORT}/api/bookmarks`);
         console.log(`Genres: http://localhost:${PORT}/api/genres`);
         console.log(`Images: http://localhost:${PORT}/api/images`);
+        console.log(`Drafts: http://localhost:${PORT}/api/drafts`);
     });
 }
 

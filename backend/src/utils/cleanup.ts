@@ -10,4 +10,46 @@ const cleanUpUser = async (id: string) => {
     await db.users.forceDelete(id);
 };
 
-export { cleanUpUser };
+const cleanUpEvent = async (id: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpEvent are only available in test environments";
+
+    await db.events.deleteById(id);
+};
+
+const cleanUpArtist = async (id: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpEvent are only available in test environments";
+
+    await db.artists.deleteById(id);
+};
+
+const cleanUpGenre = async (id: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpEvent are only available in test environments";
+
+    await db.genres.deleteById(id);
+};
+
+const cleanUpVenue = async (id: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpEvent are only available in test environments";
+
+    await db.venues.deleteById(id);
+};
+
+const cleanUpBookmark = async (userId: string, eventId: string) => {
+    if (NODE_ENV != "test")
+        throw "cleanUp functions like cleanUpBookmark are only available in test environments";
+
+    await db.bookmarks.delete(userId, eventId);
+};
+
+export {
+    cleanUpUser,
+    cleanUpArtist,
+    cleanUpEvent,
+    cleanUpGenre,
+    cleanUpVenue,
+    cleanUpBookmark,
+};

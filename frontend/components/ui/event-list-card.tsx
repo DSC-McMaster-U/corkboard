@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, Keyboard } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { FontAwesome, Feather } from '@expo/vector-icons';
 import { EventData } from '@/constants/types';
@@ -55,7 +56,7 @@ export function EventListCard({ event }: EventListCardProps) {
         >
             <View className="flex-row bg-[#9A6348] rounded-xl p-2 shadow-lg border border-black/10 w-full">
                 {/* image */}
-                <Image source={{ uri: imageUri}} className='w-[32%] h-full rounded-md mr-2' resizeMode='cover' />
+                <Image source={imageUri} style={{ width: '32%', height: '100%', borderRadius: 6, marginRight: 8 }} contentFit='cover' transition={200} />
                 {/* event details */}
                 <View className="flex-1 justify-between py-1">
                     <Text className="text-white text-[16px] font-bold mb-1" numberOfLines={2}>
