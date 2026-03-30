@@ -18,7 +18,8 @@ export const venueService = {
         latitude?: number,
         longitude?: number,
         description?: string,
-        link?: string
+        link?: string,
+        image?: string
     ) => {
         const { data, error } = await db.venues.create({
             name: name,
@@ -28,6 +29,7 @@ export const venueService = {
             longitude: longitude,
             description: description,
             link: link,
+            image: image,
         });
 
         if (error) throw error;
