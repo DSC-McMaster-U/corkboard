@@ -82,7 +82,8 @@ describe("POST /api/genres", () => {
     });
 
     it("should return 200 if a unique name is passed", async () => {
-        const genreName = "Testcase Genre";
+        const genreName =
+            "POST-GENRE-TEST-" + String(Math.floor(Math.random() * 1e10));
         let response = await request(app).post(path).send({ name: genreName });
 
         logCreatedId(response);
@@ -92,11 +93,11 @@ describe("POST /api/genres", () => {
         expect(response.body.id).toBeDefined();
 
         // Verify the genre was created by fetching it from the database
-        const createdGenre = await request(app).get(
-            path + `?name=${genreName}`,
-        );
+        const { data: createdGenre, error } =
+            await db.genres.getByName(genreName);
+
         expect(createdGenre).toBeDefined();
-        expect(createdGenre.body.genre.name).toBe(genreName);
+        expect(createdGenre.name).toBe(genreName);
     });
 });
 
@@ -104,7 +105,7 @@ afterAll(async () => {
     for (let i = 0; i < createdIds.length; i++) {
         let id = createdIds[i]!;
 
-        console.log("Cleaning up venue: ", id);
+        console.log("Cleaning up genre: ", id);
         await db.genres.deleteById(id);
     }
 });
