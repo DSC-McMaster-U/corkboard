@@ -8,16 +8,9 @@ import * as cheerio from "cheerio";
 import { eventService } from "../services/eventService.js";
 import e from "express";
 import { artistService } from "../services/artistService.js";
+import { detectGenres } from "../utils/genreDetector.js";
+import type { Event } from "../utils/types.js";
 
-type Event = {
-  title: string;
-  description: string;
-  start_time: Date;
-  cost?: number;
-  source_url: string;
-  image: string;
-  artist?: string;
-};
 
 export async function scrapeWebsite(url: string) {
   try {
@@ -85,11 +78,23 @@ export async function scrapeWebsite(url: string) {
 
       const start_time = new Date(yyyy, mm, Number(dd), Number(hourStr), Number(minStr), 0);
 
+      // detect genres
+      const genres = detectGenres(title, description);
+
       // No price on the website, so set a dummy price for now!
       //const cost = 10.00;
       const source_url = url
 
-      results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: title, image: "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/corktown-pub.jpg" });
+      results.push({ 
+        title: title, 
+        description: description, 
+        start_time: start_time, 
+        source_url: source_url, 
+        artist: title, 
+        image: "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/corktown-pub.jpg", 
+        genres: genres,
+        cost: null
+      });
     });
 
     return results;

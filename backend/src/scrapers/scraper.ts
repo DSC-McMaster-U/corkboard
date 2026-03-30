@@ -9,16 +9,9 @@ import { scrapeMillsHardware } from "./millshardware.js";
 import { scrapeCorktownPub } from "./corktownpub.js";
 import { scrapeBridgeworks } from "./bridgeworks.js";
 import { scrapeMcIntyre } from "./mcintyre.js";
+import { genresService } from "../services/genresService.js";
+import type { Event } from "../utils/types.js";
 
-export type Event = {
-  title: string;
-  description: string;
-  start_time: Date;
-  cost?: number | undefined;
-  source_url: string;
-  image: string;
-  artist?: string;
-};
 
 export async function insertScrapedEvents(events: Event[], venueID: string) {
   function normalizeTitle(s: string) {
@@ -52,7 +45,7 @@ export async function insertScrapedEvents(events: Event[], venueID: string) {
     minDate.toISOString(),
     maxDate.toISOString()
   );
-  
+
   type ExistingEventRow = {
     id: string;
     venue_id: string;
@@ -66,7 +59,8 @@ export async function insertScrapedEvents(events: Event[], venueID: string) {
     status: string | null;
     source_type: string | null;
     ingestion_status: string | null;
-    };
+    event_genres: { genres: any }[] | null;
+  };
 
   const existingByKey = new Map<string, ExistingEventRow>(); // key -> event row
   for (const e of existing as ExistingEventRow[]) {
@@ -93,54 +87,79 @@ export async function insertScrapedEvents(events: Event[], venueID: string) {
     // if exists, update it
     const existingRow = existingByKey.get(k);
     const patch = {
-        title: event.title,
-        venue_id: venueID,
-        start_time: startIso,
-        description: normalizeNullableString(event.description),
-        cost: event.cost ?? null,
-        status: "published" as const,
-        source_type: "scraping" as const,
-        source_url: normalizeNullableString(event.source_url),
-        ingestion_status: "success" as const,
-        artist_id: artistID,
-        image: normalizeNullableString(event.image),
+      title: event.title,
+      venue_id: venueID,
+      start_time: startIso,
+      description: normalizeNullableString(event.description),
+      cost: event.cost ?? null,
+      status: "published" as const,
+      source_type: "scraping" as const,
+      source_url: normalizeNullableString(event.source_url),
+      ingestion_status: "success" as const,
+      artist_id: artistID,
+      image: normalizeNullableString(event.image),
+      genreIds: [] as string[],
     };
+
+    const genreIDs = [];
+    if (event.genres?.length) {
+      for (const gName of event.genres) {
+        const g = await genresService.getOrCreateByName(gName);
+        if (g?.id) genreIDs.push(g.id);
+      }
+    }
+    patch.genreIds = genreIDs;
+
     if (existingRow) {
-        const changed =
-            existingRow.title !== patch.title ||
-            new Date(existingRow.start_time).toISOString() !== patch.start_time ||
-            normalizeNullableString(existingRow.description) !== patch.description ||
-            !sameNullableNumber(existingRow.cost, patch.cost) ||
-            normalizeNullableString(existingRow.source_url) !== patch.source_url ||
-            (existingRow.artist_id ?? null) !== patch.artist_id ||
-            normalizeNullableString(existingRow.image) !== patch.image ||
-            (existingRow.status ?? null) !== patch.status ||
-            (existingRow.source_type ?? null) !== patch.source_type ||
-            (existingRow.ingestion_status ?? null) !== patch.ingestion_status;
+      const existingGenreNames = (existingRow.event_genres || [])
+        .map((eg) => {
+          const g = eg.genres;
+          return Array.isArray(g) ? g[0]?.name : g?.name;
+        })
+        .filter(Boolean)
+        .sort();
+      const incomingGenreNames = (event.genres || []).sort();
+      const genresChanged = JSON.stringify(existingGenreNames) !== JSON.stringify(incomingGenreNames);
 
-        if (!changed) {
-            console.log(`No changes: ${event.title}`);
-            continue;
-        }
+      const changed =
+        existingRow.title !== patch.title ||
+        new Date(existingRow.start_time).toISOString() !== patch.start_time ||
+        normalizeNullableString(existingRow.description) !== patch.description ||
+        !sameNullableNumber(existingRow.cost, patch.cost) ||
+        normalizeNullableString(existingRow.source_url) !== patch.source_url ||
+        (existingRow.artist_id ?? null) !== patch.artist_id ||
+        normalizeNullableString(existingRow.image) !== patch.image ||
+        (existingRow.status ?? null) !== patch.status ||
+        (existingRow.source_type ?? null) !== patch.source_type ||
+        (existingRow.ingestion_status ?? null) !== patch.ingestion_status ||
+        genresChanged;
 
-        await eventService.updateEventByID(existingRow.id, patch);
-        console.log(`Updated existing event: ${event.title}`);
-    } else {  // else, insert new
-        await eventService.addEvent(
-            event.title,
-            venueID, 
-            event.start_time.toISOString(),
-            event.description,
-            event.cost ?? null,
-            "published",
-            "scraping",
-            event.source_url,
-            "success",
-            artistID,
-            event.image
-        );
-        //existingByKey.set(k, "placeholder");
-        console.log(`Inserted event: ${event.title}`);
+      if (!changed) {
+        console.log(`No changes: ${event.title}`);
+        continue;
+      }
+
+      await eventService.updateEventByID(existingRow.id, patch);
+      console.log(`Updated existing event: ${event.title}${genresChanged ? ' (including genres)' : ''}`);
+    } else { // else, insert new
+      const newEvent = await eventService.addEvent(
+        event.title,
+        venueID,
+        event.start_time.toISOString(),
+        event.description,
+        event.cost ?? null,
+        "published",
+        "scraping",
+        event.source_url,
+        "success",
+        artistID,
+        event.image
+      );
+
+      if (genreIDs.length && newEvent?.id) {
+        await eventService.updateEventGenres(newEvent.id, genreIDs);
+      }
+      console.log(`Inserted event: ${event.title}${genreIDs.length ? ` with genres: ${event.genres?.join(', ')}` : ''}`);
     }
   }
 }
@@ -157,25 +176,27 @@ function sameNullableNumber(a: number | null | undefined, b: number | null | und
 
 
 // main
-// map of venue ID to scraper function
-const scrapeMap = new Map<string, () => Promise<Event[]> | undefined>([
-    ["f35b17ff-ab6a-4e42-9a6c-2688e341e945", scrapeMillsHardware],
-    ["204cc1c3-e141-4ba1-9e3f-bde3763149d2", scrapeCorktownPub],
-    ["22411a86-1b39-442c-8af8-991197838b20", scrapeBridgeworks],
-    ["723b7d62-f384-4153-9a55-d24de06caa45", scrapeMcIntyre],
-]);
+// map of venue ID and name to scraper function
+const scrapers = [
+  { id: "f35b17ff-ab6a-4e42-9a6c-2688e341e945", name: "Mills Hardware", func: scrapeMillsHardware },
+  { id: "204cc1c3-e141-4ba1-9e3f-bde3763149d2", name: "Corktown Pub", func: scrapeCorktownPub },
+  { id: "22411a86-1b39-442c-8af8-991197838b20", name: "Bridgeworks", func: scrapeBridgeworks },
+  { id: "723b7d62-f384-4153-9a55-d24de06caa45", name: "McIntyre Performing Arts Centre", func: scrapeMcIntyre },
+];
 
-for (const [venueID, scraperFunc] of scrapeMap.entries()) {
-    console.log(`Scraping venue ${venueID}...`);
-    const data = await scraperFunc();
+for (const { id: venueID, name: venueName, func: scraperFunc } of scrapers) {
+  console.log(`Scraping venue ${venueName} (${venueID})...`);
+  const data = await scraperFunc();
 
-    if (data?.length) {
-      try {
-        await insertScrapedEvents(data, venueID);
-      } catch (err) {
-        console.error("Failed to insert events:", err);
-      }
+  if (data?.length) {
+    console.log(`Found ${data.length} events at ${venueName}: ${JSON.stringify(data, null, 2)}`);
+    try {
+      // keep this line commented out.
+      //await insertScrapedEvents(data, venueID);
+    } catch (err) {
+      console.error("Failed to insert events:", err);
     }
+  }
 }
 
-console.log(`Finished scraping ${scrapeMap.size} venues.`);
+console.log(`Finished scraping ${scrapers.length} venues.`);

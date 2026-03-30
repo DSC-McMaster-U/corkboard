@@ -5,16 +5,9 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { detectGenres } from "../utils/genreDetector.js";
+import type { Event } from "../utils/types.js";
 
-type Event = {
-  title: string;
-  description: string;
-  start_time: Date;
-  cost?: number | undefined;
-  source_url: string;
-  image: string;
-  artist?: string;
-};
 
 function cleanText(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -155,14 +148,18 @@ export async function scrapeWebsite(url: string) {
       const $detail = cheerio.load(detailHtml);
       const cost = extractCost($detail);
 
+      // detect genres
+      const genres = detectGenres(title, snippet);
+
       results.push({
         title: title || "Untitled Event",
-        artist: title ?? undefined,
+        artist: title || null,
         description: snippet,
         start_time: start_time,
         source_url: eventUrl,
         image: img,
-        cost: cost ?? undefined,
+        cost: cost ?? null,
+        genres: genres,
       });
     };
 

@@ -8,17 +8,10 @@ import * as cheerio from "cheerio";
 import { eventService } from "../services/eventService.js";
 import e from "express";
 import { artistService } from "../services/artistService.js";
+import { detectGenres } from "../utils/genreDetector.js";
+import type { Event } from "../utils/types.js";
 
 
-type Event = {
-  title: string;
-  description: string;
-  start_time: Date;
-  cost?: number | undefined;
-  source_url: string;
-  image: string;
-  artist?: string;
-};
 
 function cleanText(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -154,10 +147,22 @@ export async function scrapeWebsite(url: string) {
         // artist - title + "with ..." if present
         const artist = withLines.length ? `${title} ${withLines.join(" ")}` : title;
 
+        // detect genres
+        const genres = detectGenres(title, description);
+
         // image - use a default image for now
         const image = "https://dniawpahwcqtvcnaaexv.supabase.co/storage/v1/object/public/events/bridgeworks.jpg";
         
-        results.push({ title: title, description: description, start_time: start_time, source_url: source_url, artist: artist, image: image, cost: cost });
+        results.push({ 
+          title: title, 
+          description: description, 
+          start_time: start_time, 
+          source_url: source_url, 
+          artist: artist || null, 
+          image: image, 
+          cost: cost ?? null, 
+          genres: genres 
+        });
     }
 
     return results;

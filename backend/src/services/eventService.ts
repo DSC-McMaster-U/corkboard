@@ -49,7 +49,7 @@ export const eventService = {
             image
         );
         if (error) throw error;
-        return data ?? [];
+        return data;
     },
 
     createEvent: async (
