@@ -3,25 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-
 import { useLocalSearchParams, router, Stack, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { EventData, EventList, UserData } from '@/constants/types';
+import { EventData, EventList, UserData, VenueData } from '@/constants/types';
 import { apiFetch, apiFetchAuth } from '@/api/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 
-// Get venue type emoji
-export const getVenueEmoji = (type: string | undefined) => {
-  const emojiMap: Record<string, string> = {
-    bar: '🍻',
-    club: '🎧',
-    theater: '🎭',
-    venue: '🎸',
-    outdoor: '🎪',
-    other: '🎤',
-  };
-  return emojiMap[type || 'other'] || '📍';
-};
-
+// Removed getVenueEmoji
 export default function VenuePage() {
   const { 
     venueName, 
@@ -39,6 +27,7 @@ export default function VenuePage() {
   const [shows, setShows] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [realVenueImage, setRealVenueImage] = useState<string | null>(null);
 
   const [isFavourite, setIsFavourite] = useState(false);
   const [favouriteLoading, setFavouriteLoading] = useState(false);
@@ -86,8 +75,20 @@ export default function VenuePage() {
         }
       }
     };
+
+    const fetchVenueMeta = async () => {
+      try {
+        const venueRes = await apiFetch<{ venue: VenueData }>(`api/venues?id=${venueID}`);
+        if (isMounted && venueRes.venue?.image) {
+          setRealVenueImage(venueRes.venue.image);
+        }
+      } catch (err) {
+         console.warn("Could not fetch explicit venue metadata:", err);
+      }
+    };
+
     // Debounce: wait 300ms after range changes before fetching
-    const timer = setTimeout(fetchEvents, 300);
+    const timer = setTimeout(() => { fetchEvents(); fetchVenueMeta(); }, 300);
 
     return () => {
       clearTimeout(timer);
@@ -182,7 +183,7 @@ export default function VenuePage() {
    
   const imgNormalized = Array.isArray(image) ? image[0] : image;  
   const PLACEHOLDER_IMAGE = "https://i.scdn.co/image/ab6761610000e5ebc011b6c30a684a084618e20b";
-  const imageUri = imgNormalized || PLACEHOLDER_IMAGE;
+  const imageUri = realVenueImage || imgNormalized || PLACEHOLDER_IMAGE;
 
   return (
     <>
@@ -245,8 +246,12 @@ export default function VenuePage() {
           {/* Venue Details */}
           <View className='px-4 py-4'>
             <View className='bg-secondary/50 rounded-2xl p-4 flex-row items-center'>
-              <View className='w-12 h-12 rounded-xl bg-accent/20 items-center justify-center mr-4'>
-                <Text className='text-2xl'>{getVenueEmoji(venueType as string)}</Text>
+              <View className='w-14 h-14 rounded-xl items-center justify-center mr-4 overflow-hidden bg-accent/20'>
+                {imageUri && imageUri !== PLACEHOLDER_IMAGE ? (
+                  <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
+                ) : (
+                  <Ionicons name="location" size={26} color="#C4A484" />
+                )}
               </View>
               <View className='flex-1'>
                 <Text className='text-foreground font-semibold text-base'>
@@ -378,6 +383,7 @@ const ShowCard = React.memo(function ShowCard({ show }: ShowCardProps) {
           venue_latitude: show.venues?.latitude?.toString() || '',
           venue_longtidue: show.venues?.longitude?.toString() || '',
           venue_type: show.venues?.venue_type || '',
+          venue_image: show.venues?.image || '',
           source_url: show.source_url || '',
           genres: JSON.stringify(
               (show.event_genres || []).map((eg) => eg.genres?.name || '')
@@ -397,8 +403,8 @@ const ShowCard = React.memo(function ShowCard({ show }: ShowCardProps) {
         {show.title}
       </Text>
 
-      <Text className="text-foreground/60 text-xs mt-1" numberOfLines={2}>
-        {show.description}
+      <Text className="text-foreground/60 text-xs mt-1 font-medium" numberOfLines={1}>
+        {new Date(show.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
       </Text>
     </TouchableOpacity>
   );

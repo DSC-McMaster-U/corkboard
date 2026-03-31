@@ -24,6 +24,7 @@ export default function ShowDetailsPage() {
     venue_latitude,
     venue_longtidue,
     venue_type,
+    venue_image,
     source_url,
     genres,
     event_id,
@@ -85,18 +86,7 @@ export default function ShowDetailsPage() {
     });
   };
 
-  // Get venue type emoji
-  const getVenueEmoji = (type: string | undefined) => {
-    const emojiMap: Record<string, string> = {
-      bar: '🍻',
-      club: '🎧',
-      theater: '🎭',
-      venue: '🎸',
-      outdoor: '🎪',
-      other: '🎤',
-    };
-    return emojiMap[type || 'other'] || '📍';
-  };
+  // Removed getVenueEmoji
 
   const handleBookmarkToggle = async () => {
     if (!event_id) return;
@@ -135,7 +125,7 @@ export default function ShowDetailsPage() {
         latitude: venue_latitude,
         longitude: venue_longtidue,
         source_url: source_url, // temp
-        image: image, // temp uses event image
+        image: venue_image || image, // securely uses venue_image if available
         description: null
       },
     });
@@ -289,8 +279,12 @@ export default function ShowDetailsPage() {
               Venue
             </Text>
             <TouchableOpacity onPress={handleVenuePress} className='bg-secondary/50 rounded-2xl p-4 flex-row items-center'>
-              <View className='w-12 h-12 rounded-xl bg-accent/20 items-center justify-center mr-4'>
-                <Text className='text-2xl'>{getVenueEmoji(venue_type as string)}</Text>
+              <View className='w-14 h-14 rounded-xl items-center justify-center mr-4 overflow-hidden bg-accent/20'>
+                {venue_image && typeof venue_image === 'string' && venue_image.length > 5 ? (
+                  <Image source={{ uri: venue_image }} className="w-full h-full" resizeMode="cover" />
+                ) : (
+                  <Ionicons name="location" size={26} color="#C4A484" />
+                )}
               </View>
               <View className='flex-1'>
                 <Text className='text-foreground font-semibold text-base'>

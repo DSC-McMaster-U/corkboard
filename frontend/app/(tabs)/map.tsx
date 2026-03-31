@@ -10,7 +10,18 @@ import { formatEventDateTime } from "@/scripts/formatDateHelper";
 import { router } from 'expo-router';
 import { useNavBarVisibility } from "@/scripts/navBarVisibility";
 import { Colors } from "@/constants/theme";
-import { getVenueEmoji } from "../venues/[venueName]";
+import { Ionicons } from '@expo/vector-icons';
+const getVenueEmoji = (type: string | undefined) => {
+  const emojiMap: Record<string, string> = {
+    bar: '🍻',
+    club: '🎧',
+    theater: '🎭',
+    venue: '🎸',
+    outdoor: '🎪',
+    other: '🎤',
+  };
+  return emojiMap[type || 'other'] || '📍';
+};
 const HAMILTON = { latitude: 43.2557, longitude: -79.8711, latitudeDelta: 0.04, longitudeDelta: 0.04 };
 const eventLimit = 100;
 
@@ -180,7 +191,7 @@ export default function MapScreen() {
         latitude: v.latitude,
         longitude: v.longitude,
         source_url: "ticketmaster.com/", // temp
-        image: null,
+        image: v.image || '',
         description: null,
       },
     });
@@ -277,7 +288,7 @@ export default function MapScreen() {
               }}
             >
               <View className="items-center justify-center">
-                <View className="rounded-full bg-slate-50 p-1 border-1 border-black shadow-2xl drop-shadow-2xl">
+                <View className="rounded-full bg-slate-50 p-1 border border-black shadow-2xl drop-shadow-2xl">
                   <Text className='text-2xl'>{getVenueEmoji(v.venue_type as string)}</Text>
                 </View>
               </View>

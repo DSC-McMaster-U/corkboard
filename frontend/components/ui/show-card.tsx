@@ -30,6 +30,7 @@ export const ShowCard = React.memo(function ShowCard({ show }: ShowCardProps) {
                 venue_latitude: show.venues?.latitude,
                 venue_longtidue: show.venues?.longitude,
                 venue_type: show.venues?.venue_type,
+                venue_image: show.venues?.image || '',
                 source_url: show.source_url,
                 genres: JSON.stringify(genreNames),
                 event_id: show.id.toString(),
