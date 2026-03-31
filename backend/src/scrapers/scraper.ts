@@ -179,10 +179,10 @@ function sameNullableNumber(a: number | null | undefined, b: number | null | und
 // main
 // map of venue ID and name to scraper function
 const scrapers = [
-  //{ id: "f35b17ff-ab6a-4e42-9a6c-2688e341e945", name: "Mills Hardware", func: scrapeMillsHardware },
-  //{ id: "204cc1c3-e141-4ba1-9e3f-bde3763149d2", name: "Corktown Pub", func: scrapeCorktownPub },
-  //{ id: "22411a86-1b39-442c-8af8-991197838b20", name: "Bridgeworks", func: scrapeBridgeworks },
-  //{ id: "723b7d62-f384-4153-9a55-d24de06caa45", name: "McIntyre Performing Arts Centre", func: scrapeMcIntyre },
+  { id: "f35b17ff-ab6a-4e42-9a6c-2688e341e945", name: "Mills Hardware", func: scrapeMillsHardware },
+  { id: "204cc1c3-e141-4ba1-9e3f-bde3763149d2", name: "Corktown Pub", func: scrapeCorktownPub },
+  { id: "22411a86-1b39-442c-8af8-991197838b20", name: "Bridgeworks", func: scrapeBridgeworks },
+  { id: "723b7d62-f384-4153-9a55-d24de06caa45", name: "McIntyre Performing Arts Centre", func: scrapeMcIntyre },
   { id: "0be4dbff-0b61-485a-b605-ff34e00787fa", name: "TD Coliseum", func: scrapeTDColiseum }
 ];
 
