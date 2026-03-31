@@ -9,6 +9,7 @@ import { scrapeMillsHardware } from "./millshardware.js";
 import { scrapeCorktownPub } from "./corktownpub.js";
 import { scrapeBridgeworks } from "./bridgeworks.js";
 import { scrapeMcIntyre } from "./mcintyre.js";
+import { scrapeTDColiseum } from "./tdcoliseum.js";
 import { genresService } from "../services/genresService.js";
 import type { Event } from "../utils/types.js";
 
@@ -178,10 +179,11 @@ function sameNullableNumber(a: number | null | undefined, b: number | null | und
 // main
 // map of venue ID and name to scraper function
 const scrapers = [
-  { id: "f35b17ff-ab6a-4e42-9a6c-2688e341e945", name: "Mills Hardware", func: scrapeMillsHardware },
-  { id: "204cc1c3-e141-4ba1-9e3f-bde3763149d2", name: "Corktown Pub", func: scrapeCorktownPub },
-  { id: "22411a86-1b39-442c-8af8-991197838b20", name: "Bridgeworks", func: scrapeBridgeworks },
-  { id: "723b7d62-f384-4153-9a55-d24de06caa45", name: "McIntyre Performing Arts Centre", func: scrapeMcIntyre },
+  //{ id: "f35b17ff-ab6a-4e42-9a6c-2688e341e945", name: "Mills Hardware", func: scrapeMillsHardware },
+  //{ id: "204cc1c3-e141-4ba1-9e3f-bde3763149d2", name: "Corktown Pub", func: scrapeCorktownPub },
+  //{ id: "22411a86-1b39-442c-8af8-991197838b20", name: "Bridgeworks", func: scrapeBridgeworks },
+  //{ id: "723b7d62-f384-4153-9a55-d24de06caa45", name: "McIntyre Performing Arts Centre", func: scrapeMcIntyre },
+  { id: "0be4dbff-0b61-485a-b605-ff34e00787fa", name: "TD Coliseum", func: scrapeTDColiseum }
 ];
 
 for (const { id: venueID, name: venueName, func: scraperFunc } of scrapers) {
@@ -195,7 +197,7 @@ for (const { id: venueID, name: venueName, func: scraperFunc } of scrapers) {
     data.forEach((e: Event, i: number) => {
       const g = e.genres?.length ? ` | ${e.genres.join(", ")}` : "";
       const c = e.cost != null ? ` | $${e.cost.toFixed(2)}` : "";
-      const d = e.description ? `\n    ↳ ` + e.description.replace(/\s+/g," ").substring(0, 75).trim() + "..." : "";
+      const d = e.description ? `\n    ↳ ` + e.description.replace(/\s+/g, " ").substring(0, 75).trim() + "..." : "";
       console.log(`[${i + 1}] ${new Date(e.start_time).toDateString()} - ${e.title}${g}${c}${d}`);
     });
     console.log("");
