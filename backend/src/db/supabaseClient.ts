@@ -502,7 +502,7 @@ export const db = {
                         description,
                         link,
                         image
-                    )
+                    ),
                     artists (
                         id,
                         name,

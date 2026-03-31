@@ -130,6 +130,7 @@ export const draftService = {
                 longitude: draft.venue_longitude ?? undefined,
                 description: undefined,
                 link: undefined,
+                image: undefined,
             });
             if (venueError) throw venueError;
             if (!newVenue) throw new Error("Failed to create venue");
