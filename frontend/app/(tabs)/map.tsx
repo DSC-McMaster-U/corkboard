@@ -197,6 +197,32 @@ export default function MapScreen() {
     });
   };
 
+  const handleEventPress = (e: EventData) => {
+    if (!e) return;
+    
+    router.push({
+      pathname: '/shows/[showName]',
+            params: {
+            showName: e.title,
+            description: e.description || '',
+            start_time: e.start_time,
+            cost: e.cost?.toString() || '',
+            artist: e.artist || '',
+            image: e.image || '',
+            venue_name: e.venues?.name || '',
+            venue_id: e.venues?.id || '',
+            venue_address: e.venues?.address || '',
+            venue_latitude: e.venues?.latitude?.toString() || '',
+            venue_longtidue: e.venues?.longitude?.toString() || '',
+            venue_type: e.venues?.venue_type || '',
+            venue_image: e.venues?.image || '',
+            source_url: e.source_url || '',
+            genres: JSON.stringify((e.event_genres ?? []).map(gd => gd.genres?.name ?? "")),
+            event_id: e.id.toString(),
+            },
+    });
+  }
+
   const HAMILTON_BOUNDS = {
     northEast: { latitude: 43.30, longitude: -79.80 },
     southWest: { latitude: 43.20, longitude: -79.95 },
@@ -266,8 +292,9 @@ export default function MapScreen() {
               title={e.title}
               // description={`${formatEventDateTime(e.start_time)} • ${e.description}`}
               onPress={() => {
-                setSelectedEvent(e);
-                setModalVisible(true);
+                //setSelectedEvent(e);
+                //setModalVisible(true);
+                handleEventPress(e);
               }}
             />
           ))}

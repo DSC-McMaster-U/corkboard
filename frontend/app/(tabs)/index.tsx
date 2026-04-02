@@ -105,7 +105,7 @@ export default function ExploreScreen() {
 
             {/* Showcased Event 1 */}
             <View className='mb-6'>
-              <ShowcaseEvent eventId={"33450f88-351e-4dd8-8621-5aeb6ee6bf89"} showcaseMessage='Wolf Parade returns, live at Bridgeworks'/>
+              <ShowcaseEvent eventId={"9ea60829-552b-4192-861b-a666dd29b29e"} showcaseMessage='Goo Goo Dolls, tonight in Hamilton'/>
             </View>
 
             {/* Explore shows from favourite genres*/}
