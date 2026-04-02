@@ -32,6 +32,7 @@ export type VenueData = {
   latitude?: number,
   longitude?: number,
   venue_type?: string,
+  image?: string,
 }
 
 export type Genre = {

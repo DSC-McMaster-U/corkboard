@@ -41,6 +41,7 @@ export function EventListCard({ event }: EventListCardProps) {
                 venue_latitude: event.venues?.latitude?.toString() || '',
                 venue_longtidue: event.venues?.longitude?.toString() || '',
                 venue_type: event.venues?.venue_type || '',
+                venue_image: event.venues?.image || '',
                 source_url: event.source_url || '',
                 genres: JSON.stringify(genres),
                 event_id: event.id.toString(),
